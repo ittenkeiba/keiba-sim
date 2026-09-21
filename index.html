@@ -73,12 +73,10 @@ body::after{bottom:-110px;left:-90px;background:var(--lime);opacity:.14}
 
 .back{background:none;border:0;color:var(--mute);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:6px 0}
 .back:focus-visible{outline:2px solid #fff;outline-offset:2px}
-.lanes{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 0}
-.lane{position:relative;height:var(--lane);border-bottom:1px dashed var(--line)}
-.lane:nth-last-child(2){border-bottom:0}
-.runner{position:absolute;left:8px;top:calc((var(--lane) - var(--size)) / 2);width:var(--size);height:var(--size);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#0B0A1A;font-size:calc(var(--size) * .5);will-change:transform}
-.runner::before{content:"";position:absolute;right:50%;top:50%;width:48px;height:3px;margin-top:-1.5px;border-radius:999px;background:inherit;opacity:.45;z-index:-1}
-.finish{position:absolute;top:0;bottom:0;right:16px;border-right:3px dashed var(--lime)}
+.oval{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 4px}
+.oval svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:-6px 0 0}
+.legend i{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:11px;color:#0B0A1A}
 .say{margin:-6px 0 0;text-align:center;font-family:'Dela Gothic One',sans-serif;font-size:16px;color:var(--gold);text-shadow:0 0 10px rgba(255,200,61,.5);min-height:24px}
 .last{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;min-height:54px;font-size:13px;flex-wrap:wrap}
 .last .c{display:inline-flex;align-items:center;gap:4px;font-weight:900;font-size:12px}
@@ -365,16 +363,103 @@ function runOnce(order) {
   return { net: back - cost, any };
 }
 
+const TR = { cx: 180, cy: 125, R: 62, L: 150, W: 66 };
+const COATS = ['#6B4226', '#3B2A20', '#8A5A33', '#2E2A2A', '#A0703F', '#57392B'];
+let TRG = { sp: 6, scale: 1 };
+let HG = [], HI = [], HL = [], CT1 = null, CT2 = null;
+
+function trackPos(p, d) {
+  const r = TR.R + d, L = TR.L, cx = TR.cx, cy = TR.cy;
+  const total = 2 * L + 2 * Math.PI * r;
+  let s = (((p % 1) + 1) % 1) * total;
+  const half = L / 2, arc = Math.PI * r;
+  if (s < half) return { x: cx + s, y: cy + r, a: 0 };
+  s -= half;
+  if (s < arc) {
+    const phi = Math.PI / 2 - s / r;
+    return { x: cx + half + r * Math.cos(phi), y: cy + r * Math.sin(phi), a: (phi - Math.PI / 2) * 180 / Math.PI };
+  }
+  s -= arc;
+  if (s < L) return { x: cx + half - s, y: cy - r, a: 180 };
+  s -= L;
+  if (s < arc) {
+    const phi = -Math.PI / 2 - s / r;
+    return { x: cx - half + r * Math.cos(phi), y: cy + r * Math.sin(phi), a: (phi - Math.PI / 2) * 180 / Math.PI };
+  }
+  s -= arc;
+  return { x: cx - half + s, y: cy + r, a: 0 };
+}
+
+function trackSvg() {
+  const H = DATA.horses, n = H.length;
+  const cx = TR.cx, cy = TR.cy, R = TR.R, L = TR.L, W = TR.W, half = L / 2;
+  const sp = n > 1 ? Math.min(10, (W - 10) / (n - 1)) : 0;
+  TRG = { sp: sp, scale: Math.max(0.42, Math.min(1.3, sp / 7)) };
+  const path = (r) => 'M' + (cx - half) + ',' + (cy + r) + ' L' + (cx + half) + ',' + (cy + r) +
+    ' A' + r + ',' + r + ' 0 0 0 ' + (cx + half) + ',' + (cy - r) +
+    ' L' + (cx - half) + ',' + (cy - r) +
+    ' A' + r + ',' + r + ' 0 0 0 ' + (cx - half) + ',' + (cy + r) + ' Z';
+  const dirt = /ダ/.test(DATA.course || '');
+  const band = dirt ? '#6B4A31' : '#2A6B43';
+  const infield = dirt ? '#1B2A22' : '#0F2A1D';
+  const fs = n > 10 ? 6.5 : 8;
+  const horses = H.map((h, i) => {
+    const coat = COATS[i % COATS.length];
+    return '<g id="hg' + i + '"><g id="hi' + i + '">' +
+      '<ellipse cx="0" cy="1.2" rx="7.5" ry="3.6" style="fill:#000;opacity:.25"/>' +
+      '<path d="M-7,0 C-10,-1.5 -12,1.5 -11.5,4" style="fill:none;stroke:' + coat + ';stroke-width:1.3;stroke-linecap:round"/>' +
+      '<ellipse cx="0" cy="0" rx="7" ry="3.3" style="fill:' + coat + '"/>' +
+      '<ellipse cx="7.8" cy="0" rx="3.6" ry="1.8" style="fill:' + coat + '"/>' +
+      '<circle cx="0.6" cy="0" r="2.5" style="fill:' + colorOf(i) + ';stroke:#0B0A1A;stroke-width:.6"/>' +
+      '</g><text id="hl' + i + '" x="0" y="-8" text-anchor="middle" style="font-size:' + fs + 'px;font-weight:900;fill:#fff;stroke:#0B0A1A;stroke-width:2;paint-order:stroke;opacity:0">' + h.no + '</text></g>';
+  }).join('');
+  return '<svg viewBox="0 0 360 250" role="img" aria-label="コースを1周するレースの映像">' +
+    '<path d="' + path(R - W / 2) + '" style="fill:' + infield + '"/>' +
+    '<path d="' + path(R) + '" style="fill:none;stroke:' + band + ';stroke-width:' + W + '"/>' +
+    '<path d="' + path(R - W / 2) + '" style="fill:none;stroke:#EEEBFF;stroke-opacity:.6;stroke-width:1.2"/>' +
+    '<path d="' + path(R + W / 2) + '" style="fill:none;stroke:#EEEBFF;stroke-opacity:.6;stroke-width:1.2"/>' +
+    '<line x1="' + cx + '" x2="' + cx + '" y1="' + (cy + R - W / 2) + '" y2="' + (cy + R + W / 2) + '" style="stroke:#fff;stroke-width:2;stroke-dasharray:3 3"/>' +
+    '<text x="' + cx + '" y="' + (cy + R + W / 2 + 11) + '" text-anchor="middle" style="font-size:8px;fill:#A9A6D6;letter-spacing:.2em">START / GOAL</text>' +
+    '<text id="ct1" x="' + cx + '" y="' + (cy + 8) + '" text-anchor="middle" style="font-family:\'Dela Gothic One\',sans-serif;font-size:26px;fill:#C6FF3D">READY</text>' +
+    '<text id="ct2" x="' + cx + '" y="' + (cy + 26) + '" text-anchor="middle" style="font-size:9px;fill:#A9A6D6">スタート待ち</text>' +
+    horses + '</svg>';
+}
+
+function ctrSet(big, cap, color, size) {
+  if (!CT1) return;
+  CT1.textContent = big;
+  CT1.style.fill = color || '#C6FF3D';
+  CT1.style.fontSize = (size || 26) + 'px';
+  CT2.textContent = cap || '';
+}
+
+function placeHorse(i, p, t) {
+  const n = DATA.horses.length;
+  const d = (i - (n - 1) / 2) * TRG.sp;
+  const q = trackPos(p, d);
+  HG[i].setAttribute('transform', 'translate(' + q.x.toFixed(1) + ' ' + q.y.toFixed(1) + ')');
+  const sx = TRG.scale * (1 + 0.06 * Math.sin(t * 24 + i));
+  HI[i].setAttribute('transform', 'rotate(' + q.a.toFixed(1) + ') scale(' + sx.toFixed(3) + ' ' + TRG.scale.toFixed(3) + ')');
+}
+
+function setLabels(set) {
+  for (let i = 0; i < HL.length; i++) HL[i].style.opacity = set.has(i) ? 1 : 0;
+}
+
+function resetTrack() {
+  const n = DATA.horses.length;
+  for (let i = 0; i < n; i++) placeHorse(i, 0, 0);
+  setLabels(new Set());
+  ctrSet('READY', 'スタート待ち', '#C6FF3D', 22);
+}
+
 function renderSim() {
   const H = DATA.horses, n = H.length;
-  const laneH = Math.max(24, Math.min(32, Math.floor(280 / n)));
-  const size = laneH - 6;
-  const lanes = H.map((h, i) =>
-    '<div class="lane"><div class="runner" id="run' + i + '" style="background:' + colorOf(i) + ';box-shadow:0 0 10px ' + colorOf(i) + '">' + h.no + '</div></div>'
-  ).join('');
+  const legend = H.map((h, i) => '<i style="background:' + colorOf(i) + '">' + h.no + '</i>').join('');
   $('v-sim').innerHTML =
     '<div class="row between"><button class="back" data-act="pick">‹ 予想に戻る</button><span class="mute small">' + esc(DATA.race || '') + ' ・ ' + esc(DATA.course || '') + '</span></div>' +
-    '<div class="lanes" id="lanes" style="--lane:' + laneH + 'px;--size:' + size + 'px">' + lanes + '<div class="finish"></div></div>' +
+    '<div class="oval">' + trackSvg() + '</div>' +
+    '<div class="legend">' + legend + '</div>' +
     '<p class="say" id="say">「1回 回す」でスタート</p>' +
     '<div id="last"></div>' +
     '<div class="stats" id="stats"></div>' +
@@ -385,6 +470,10 @@ function renderSim() {
     '<button class="btn" data-act="run1">1回 回す</button>' +
     '<div class="runs"><button class="btn ghost" data-act="run10">×10</button><button class="btn ghost" data-act="run100">×100</button><button class="btn ghost" data-act="run1000">×1000</button></div>' +
     '<button class="reset" data-act="reset">記録をリセット</button></div>';
+  HG = []; HI = []; HL = [];
+  for (let i = 0; i < n; i++) { HG.push($('hg' + i)); HI.push($('hi' + i)); HL.push($('hl' + i)); }
+  CT1 = $('ct1'); CT2 = $('ct2');
+  resetTrack();
   updateSim();
 }
 
@@ -482,34 +571,73 @@ function confetti() {
 function animateRace(order, done) {
   cancelAnimationFrame(raf);
   const H = DATA.horses, n = H.length;
-  const runners = H.map((_, i) => $('run' + i));
-  runners.forEach(r => { r.style.transform = 'translateX(0px)'; });
+  resetTrack();
   if (reduce) { done(); return; }
   const rank = new Array(n);
   order.forEach((idx, r) => { rank[idx] = r; });
-  const F = H.map((_, i) => 3.2 + rank[i] * 0.12 + Math.random() * 0.05);
+  const F = H.map((_, i) => 2.3 + rank[i] * 0.07 + Math.random() * 0.03);
   const phase = H.map(() => Math.random() * 6.28);
   const amp = H.map(() => 0.05 + Math.random() * 0.05);
-  const size = parseFloat(getComputedStyle($('lanes')).getPropertyValue('--size')) || 26;
-  const travel = Math.max(10, $('lanes').clientWidth - 16 - 8 - size);
-  const endAt = F[order[0]] + 0.7;
+  const endAt = F[order[0]] + 0.55;
   const say = $('say');
   const t0 = performance.now();
+  const P = new Array(n).fill(0);
   function frame(now) {
     const t = (now - t0) / 1000;
-    let leader = 0, lx = -1;
     for (let i = 0; i < n; i++) {
       const u = Math.min(1, t / F[i]);
-      let x = u < 1 ? u + amp[i] * Math.sin(u * 9.4 + phase[i]) * (1 - u) : 1;
-      x = Math.min(1, Math.max(0, x));
-      runners[i].style.transform = 'translateX(' + (x * travel).toFixed(1) + 'px)';
-      if (x > lx) { lx = x; leader = i; }
+      let p;
+      if (u < 1) p = Math.max(0, u + amp[i] * Math.sin(u * 9.4 + phase[i]) * (1 - u));
+      else p = 1 + Math.min(0.05, (t - F[i]) * 0.05);
+      P[i] = p;
+      placeHorse(i, p, t);
     }
-    if (t >= F[order[0]]) say.textContent = 'ゴール！ 1着は ' + noOf(order[0]) + '番';
-    else if (lx > 0.8) say.textContent = '最後の直線、' + noOf(leader) + '番が先頭';
-    else if (t > 0.6) say.textContent = '先頭は ' + noOf(leader) + '番';
-    else say.textContent = 'スタート！';
+    const idx = P.map((_, i) => i).sort((a, b) => P[b] - P[a]);
+    setLabels(new Set(idx.slice(0, 3)));
+    if (t >= F[order[0]]) {
+      say.textContent = 'ゴール！ 1着は ' + noOf(order[0]) + '番';
+      ctrSet(String(noOf(order[0])), '1着', colorOf(order[0]), 34);
+    } else {
+      const lead = idx[0];
+      say.textContent = P[lead] > 0.85 ? '最後の直線、' + noOf(lead) + '番が先頭' : (t > 0.4 ? '先頭は ' + noOf(lead) + '番' : 'スタート！');
+      ctrSet(String(noOf(lead)), 'LEADER', colorOf(lead), 34);
+    }
     if (t >= endAt) { done(); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+}
+
+function packShot(order, t) {
+  const n = order.length;
+  order.forEach((idx, r) => {
+    const p = 0.74 + 0.24 * (1 - (n > 1 ? r / (n - 1) : 0)) + (Math.random() - 0.5) * 0.01;
+    placeHorse(idx, p, t);
+  });
+  setLabels(new Set(order.slice(0, 3)));
+}
+
+function montage(k, dur, done) {
+  cancelAnimationFrame(raf);
+  resetTrack();
+  if (reduce) {
+    for (let i = 0; i < k; i++) runOnce(sampleOrder(MODEL.w));
+    done();
+    return;
+  }
+  const t0 = performance.now();
+  let ran = 0, lastVis = 0, lastOrder = null;
+  function frame(now) {
+    const f = Math.min(1, (now - t0) / (dur * 1000));
+    const target = Math.round(k * f);
+    while (ran < target) { lastOrder = sampleOrder(MODEL.w); runOnce(lastOrder); ran++; }
+    if (now - lastVis > 70 || f >= 1) {
+      lastVis = now;
+      if (lastOrder) packShot(lastOrder, now / 1000);
+      ctrSet(ran.toLocaleString('ja-JP'), '/ ' + k.toLocaleString('ja-JP') + '回', '#FFC83D', ran >= 1000 ? 24 : 30);
+      updateSim();
+    }
+    if (f >= 1) { done(); return; }
     raf = requestAnimationFrame(frame);
   }
   raf = requestAnimationFrame(frame);
@@ -533,14 +661,22 @@ function run1() {
 
 function runN(k) {
   if (busy) return;
+  busy = true;
+  setDock(true);
   const before = SIM.back - SIM.cost, hit0 = SIM.anyHit;
-  for (let i = 0; i < k; i++) runOnce(sampleOrder(MODEL.w));
-  const net = (SIM.back - SIM.cost) - before;
-  SIM.last = { type: 'batch', k: k, net: net, hits: SIM.anyHit - hit0 };
-  $('say').textContent = k.toLocaleString('ja-JP') + '回、一気に回しました';
-  updateSim();
-  toast(net);
-  if (net > 0 && k >= 100) confetti();
+  const dur = k <= 10 ? 1.1 : (k <= 100 ? 1.8 : 2.4);
+  $('say').textContent = k.toLocaleString('ja-JP') + '回、高速で回しています';
+  montage(k, dur, () => {
+    const net = (SIM.back - SIM.cost) - before;
+    SIM.last = { type: 'batch', k: k, net: net, hits: SIM.anyHit - hit0 };
+    $('say').textContent = k.toLocaleString('ja-JP') + '回 完了';
+    ctrSet(sgn(net), '直近' + k.toLocaleString('ja-JP') + '回の収支', net > 0 ? '#C6FF3D' : '#A9A6D6', 20);
+    busy = false;
+    setDock(false);
+    updateSim();
+    toast(net);
+    if (net > 0 && k >= 100) confetti();
+  });
 }
 
 function showSim() {
