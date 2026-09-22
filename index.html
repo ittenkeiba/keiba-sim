@@ -96,6 +96,45 @@ body::after{bottom:-110px;left:-90px;background:var(--lime);opacity:.14}
 .per .h{width:104px;text-align:right;color:var(--mute);font-size:12px;white-space:nowrap}
 .per .y{width:52px;text-align:right;font-weight:900}
 .pertable{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 14px;margin-top:8px}
+.board{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.bh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rar{font-family:'Dela Gothic One',sans-serif;font-size:13px;padding:3px 12px;border-radius:999px;border:1.5px solid}
+.rar.ultra{animation:glowpulse 1s ease-in-out infinite}
+.bcap{font-size:12px;color:var(--mute);margin:4px 0 6px}
+.br{display:flex;align-items:center;gap:10px;min-height:46px;border-top:1px solid var(--line);padding:0 4px;animation:rowin .4s both}
+.br.r1{background:rgba(255,200,61,.09);border-radius:10px;border-top-color:transparent}
+.br.r1{animation-delay:.05s}
+.br.r2{animation-delay:.2s}
+.br.r3{animation-delay:.35s}
+.br .rk{width:34px;flex:none;font-family:'Dela Gothic One',sans-serif;font-size:15px}
+.chip.sm{width:28px;height:28px;font-size:13px;flex:none}
+.br .bn{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.br .bp{font-family:'Dela Gothic One',sans-serif;font-size:18px}
+.brest{display:flex;align-items:center;flex-wrap:wrap;gap:5px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px;font-size:12px;color:var(--mute)}
+.mini{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#0B0A1A}
+.bfoot{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;border-top:1px solid var(--line);padding-top:8px;margin-top:8px;font-size:13px}
+.bfoot .st{font-family:'Dela Gothic One',sans-serif;font-size:18px}
+.badge{font-weight:900;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--lime);color:#0B0A1A}
+.badge.miss{background:var(--line);color:var(--mute)}
+.hist{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px 12px}
+.hr{display:flex;align-items:center;gap:10px;padding:10px 0 4px;border-top:1px solid var(--line)}
+.hr .ri{width:18px;flex:none;text-align:center;font-family:'Dela Gothic One',sans-serif;font-size:13px;color:var(--mute)}
+.hr .hm{flex:1;min-width:0}
+.hr .hn{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hr .ha{text-align:right;flex:none}
+.hr .ha b{display:block;font-family:'Dela Gothic One',sans-serif;font-weight:400;font-size:22px;line-height:1.1}
+.hr .ha small{font-size:10px;color:var(--mute2)}
+.stack{display:flex;height:8px;border-radius:999px;background:#1C1A3A;overflow:hidden;margin-top:5px}
+.stack i{display:block;height:8px}
+.hd{font-size:11px;color:var(--mute2);padding:0 0 6px 28px}
+.more{width:100%;background:none;border:1px solid var(--line2);color:var(--mute);font-family:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:9px;margin-top:6px;cursor:pointer}
+.more:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.key{display:flex;gap:12px;font-size:11px;color:var(--mute);margin:6px 0 2px}
+.key i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.bump{animation:bump .35s ease-out}
+@keyframes rowin{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes glowpulse{0%,100%{box-shadow:0 0 6px rgba(255,200,61,.5)}50%{box-shadow:0 0 20px rgba(255,200,61,1)}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
 .dock{position:sticky;bottom:0;margin:auto -18px 0;padding:12px 18px calc(6px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .dock .runs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .dock .reset{background:none;border:0;color:var(--mute2);font-family:inherit;font-size:12px;cursor:pointer;padding:4px}
@@ -151,18 +190,23 @@ function computeModel(horses) {
   const S = w.reduce((x, y) => x + y, 0);
   const win = new Array(n).fill(0);
   const top3 = new Array(n).fill(0);
+  const p2 = new Array(n).fill(0);
+  const p3 = new Array(n).fill(0);
+  let pMax = 0;
   const quinella = {};
   const wide = {};
   const add = (o, k, p) => { o[k] = (o[k] || 0) + p; };
   forEachTriple(w, S, (a, b, c, p) => {
     win[a] += p;
+    p2[b] += p; p3[c] += p;
+    if (p > pMax) pMax = p;
     top3[a] += p; top3[b] += p; top3[c] += p;
     add(quinella, pairKey(a, b), p);
     add(wide, pairKey(a, b), p);
     add(wide, pairKey(a, c), p);
     add(wide, pairKey(b, c), p);
   });
-  return { n, w, S, win, top3, quinella, wide };
+  return { n, w, S, win, p2, p3, pMax, top3, quinella, wide };
 }
 
 function buildOddsMaps(data) {
@@ -261,6 +305,20 @@ function sampleOrder(w, rnd) {
   return order;
 }
 
+function orderProb(model, order) {
+  const w = model.w, S = model.S;
+  const a = order[0], b = order[1], c = order[2];
+  return (w[a] / S) * (w[b] / (S - w[a])) * (w[c] / (S - w[a] - w[b]));
+}
+
+function rarityOf(model, p) {
+  const ratio = model.pMax / p;
+  if (ratio >= 60) return { key: 'ultra', name: '超激レア', color: '#FFC83D' };
+  if (ratio >= 12) return { key: 'sr', name: '激レア', color: '#FF3D81' };
+  if (ratio >= 3) return { key: 'r', name: 'レア', color: '#3DE8FF' };
+  return { key: 'c', name: '王道', color: '#A9A6D6' };
+}
+
 function validateData(data) {
   if (!data || !Array.isArray(data.horses) || data.horses.length < 3) return 'horses が3頭以上ありません。';
   for (const h of data.horses) {
@@ -280,6 +338,7 @@ const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: 
 
 let ROOT = null, RACES = [], CUR = 0;
 let DATA = null, MODEL = null, MAPS = null, PICKS = [], SUMMARY = null;
+let PREV = {};
 let SIM = null, busy = false, raf = 0, toastTimer = 0;
 
 function show(id) {
@@ -342,7 +401,8 @@ function renderPick() {
 }
 
 function newSim() {
-  SIM = { runs: 0, anyHit: 0, back: 0, cost: 0, series: [0], per: PICKS.map(() => ({ hit: 0, back: 0 })), last: null };
+  SIM = { runs: 0, anyHit: 0, back: 0, cost: 0, series: [0], per: PICKS.map(() => ({ hit: 0, back: 0 })), hs: DATA.horses.map(() => ({ sum: 0, c1: 0, c2: 0, c3: 0 })), streak: 0, best: 0, showAll: false, last: null };
+  PREV = {};
 }
 
 function runOnce(order) {
@@ -360,6 +420,12 @@ function runOnce(order) {
   SIM.back += back;
   if (any) SIM.anyHit++;
   SIM.series.push(SIM.back - SIM.cost);
+  order.forEach((idx, r) => {
+    const h = SIM.hs[idx];
+    h.sum += r + 1;
+    if (r === 0) h.c1++; else if (r === 1) h.c2++; else if (r === 2) h.c3++;
+  });
+  if (back - cost > 0) { SIM.streak++; if (SIM.streak > SIM.best) SIM.best = SIM.streak; } else { SIM.streak = 0; }
   return { net: back - cost, any };
 }
 
@@ -461,8 +527,9 @@ function renderSim() {
     '<div class="oval">' + trackSvg() + '</div>' +
     '<div class="legend">' + legend + '</div>' +
     '<p class="say" id="say">「1回 回す」でスタート</p>' +
-    '<div id="last"></div>' +
+    '<div id="board"></div>' +
     '<div class="stats" id="stats"></div>' +
+    '<div><div class="row between"><p class="sec">着順の集計（平均着順）</p><span class="small mute" id="hnote"></span></div><div id="hstat"></div></div>' +
     '<div class="chart"><div class="row between"><p class="sec">収支の推移</p><span class="small mute" id="legend"></span></div><div id="chart"></div></div>' +
     '<div><p class="sec">買い目ごとの成績</p><div class="pertable" id="per"></div></div>' +
     '<p class="foot">回数が少ないうちは運でブレます。回すほど、期待回収率に近づいていきます。確率にもとづくシミュレーションで、実際のレース結果ではありません。</p>' +
@@ -504,7 +571,64 @@ function chartSvg() {
     '<circle cx="' + X(last[0]).toFixed(1) + '" cy="' + Y(last[1]).toFixed(1) + '" r="4.5" style="fill:' + (up ? '#C6FF3D' : '#3DE8FF') + '"/></svg>';
 }
 
-function updateSim() {
+function histRows() {
+  const H = DATA.horses, S = SIM;
+  return H.map((h, i) => ({ i: i, avg: S.hs[i].sum / S.runs })).sort((a, b) => a.avg - b.avg);
+}
+
+function boardHtml() {
+  const L = SIM.last;
+  if (!L) return '<div class="board"><p class="foot" style="padding:14px 0">「回す」を押すと、ここに着順と確率が出ます。</p></div>';
+  const streak = SIM.streak >= 2 ? '<span class="badge">' + SIM.streak + '連続プラス</span>' : '';
+  const best = SIM.best >= 2 ? '<span class="mute small">最高 ' + SIM.best + '連続</span>' : '';
+  if (L.type === 'batch') {
+    const top = histRows()[0];
+    return '<div class="board"><div class="bh"><span class="sec">直近 ' + L.k.toLocaleString('ja-JP') + '回のまとめ</span></div>' +
+      '<div class="bfoot" style="border-top:0;margin-top:4px;padding-top:0"><span class="st ' + (L.net > 0 ? 'good' : 'none') + '">' + sgn(L.net) + '</span>' +
+      '<span class="mute">的中 ' + L.hits.toLocaleString('ja-JP') + '回</span>' + streak + best + '</div>' +
+      '<div class="bcap" style="margin:8px 0 0">平均着順トップ： ' + noOf(top.i) + '番 ' + esc(nameOf(top.i)) + '（' + top.avg.toFixed(2) + '着）</div></div>';
+  }
+  const medal = ['var(--gold)', 'var(--lime)', 'var(--aqua)'];
+  const probs = [MODEL.win, MODEL.p2, MODEL.p3];
+  const rows = [0, 1, 2].map(r => {
+    const i = L.order[r];
+    return '<div class="br r' + (r + 1) + '"><span class="rk" style="color:' + medal[r] + '">' + (r + 1) + '着</span>' +
+      '<span class="chip sm" style="border-color:' + colorOf(i) + ';color:' + colorOf(i) + '">' + noOf(i) + '</span>' +
+      '<span class="bn">' + esc(nameOf(i)) + '</span>' +
+      '<span class="bp" style="color:' + (r === 0 ? 'var(--gold)' : 'var(--text)') + '">' + pct(probs[r][i]) + '</span></div>';
+  }).join('');
+  const rest = L.order.slice(3);
+  const restHtml = rest.length ? '<div class="brest"><span>4着以下</span>' + rest.map(i => '<span class="mini" style="background:' + colorOf(i) + '">' + noOf(i) + '</span>').join('') + '</div>' : '';
+  const once = Math.round(1 / L.p);
+  return '<div class="board"><div class="bh"><span class="sec">今回の着順</span>' +
+    '<span class="rar ' + L.rar.key + '" style="color:' + L.rar.color + ';border-color:' + L.rar.color + '">' + L.rar.name + '</span></div>' +
+    '<div class="bcap">右の数字は、その馬がその着順になる確率。この並びは ' + pct(L.p, L.p < 0.01 ? 2 : 1) + '（約' + once.toLocaleString('ja-JP') + '回に1回）</div>' +
+    rows + restHtml +
+    '<div class="bfoot"><span class="st ' + (L.net > 0 ? 'good' : 'none') + '">' + sgn(L.net) + '</span><span class="badge ' + (L.any ? '' : 'miss') + '">' + (L.any ? '的中あり' : 'ハズレ') + '</span>' + streak + best + '</div></div>';
+}
+
+function histHtml() {
+  const S = SIM;
+  if (!S.runs) return '<div class="hist"><p class="foot" style="padding:14px 0">回すと、馬ごとの平均着順がここにたまります。</p></div>';
+  const rows = histRows();
+  const list = S.showAll ? rows : rows.slice(0, 5);
+  const html = list.map((r, k) => {
+    const h = S.hs[r.i];
+    const f1 = h.c1 / S.runs, f2 = h.c2 / S.runs, f3 = h.c3 / S.runs;
+    const top3 = f1 + f2 + f3;
+    const cmp = S.runs >= 20 ? '（計算 ' + pct(MODEL.win[r.i]) + '）' : '';
+    return '<div class="hr"><span class="ri">' + (k + 1) + '</span>' +
+      '<span class="chip sm" style="border-color:' + colorOf(r.i) + ';color:' + colorOf(r.i) + '">' + noOf(r.i) + '</span>' +
+      '<div class="hm"><div class="hn">' + esc(nameOf(r.i)) + '</div>' +
+      '<div class="stack"><i style="width:' + (f1 * 100).toFixed(1) + '%;background:var(--gold)"></i><i style="width:' + (f2 * 100).toFixed(1) + '%;background:var(--lime)"></i><i style="width:' + (f3 * 100).toFixed(1) + '%;background:var(--aqua)"></i></div></div>' +
+      '<div class="ha"><b>' + r.avg.toFixed(2) + '</b><small>平均着順</small></div></div>' +
+      '<div class="hd">1着 ' + pct(f1) + cmp + ' ・ 3着内 ' + pct(top3, 0) + '</div>';
+  }).join('');
+  const more = rows.length > 5 ? '<button class="more" data-act="toggleall">' + (S.showAll ? '上位5頭だけ表示' : '全頭を見る（' + rows.length + '頭）') + '</button>' : '';
+  return '<div class="hist"><div class="key"><span><i style="background:var(--gold)"></i>1着</span><span><i style="background:var(--lime)"></i>2着</span><span><i style="background:var(--aqua)"></i>3着</span></div>' + html + more + '</div>';
+}
+
+function updateSim(montage) {
   const S = SIM;
   const net = S.back - S.cost;
   const roi = S.cost ? S.back / S.cost : null;
@@ -514,22 +638,18 @@ function updateSim() {
     '<div class="stat"><div class="k">累計収支</div><div class="v ' + oc + '">' + (S.runs ? sgn(net) : '—') + '</div><div class="s">払戻 ' + yen(S.back) + '</div></div>' +
     '<div class="stat"><div class="k">回収率</div><div class="v ' + (roi === null ? 'none' : (roi >= 1 ? 'good' : 'weak')) + '">' + (roi === null ? '—' : Math.round(roi * 100) + '%') + '</div><div class="s">期待 ' + (SUMMARY.roi === null ? '—' : Math.round(SUMMARY.roi * 100) + '%') + '</div></div>' +
     '<div class="stat"><div class="k">的中率</div><div class="v">' + (S.runs ? pct(S.anyHit / S.runs, 1) : '—') + '</div><div class="s">計算値 ' + pct(SUMMARY.anyHit, 1) + '</div></div>';
-
-  const L = S.last;
-  let lastHtml = '<span class="mute">まだ回していません</span>';
-  if (L && L.type === 'one') {
-    const medal = ['var(--gold)', 'var(--lime)', 'var(--aqua)'];
-    lastHtml = [0, 1, 2].map(r =>
-      '<span class="c" style="color:' + medal[r] + '">' + (r + 1) + '着<i style="background:' + medal[r] + '">' + noOf(L.order[r]) + '</i></span>'
-    ).join('') + '<span class="st ' + (L.net > 0 ? 'good' : 'none') + '">' + (L.any ? '' : 'ハズレ ') + sgn(L.net) + '</span>';
-  } else if (L && L.type === 'batch') {
-    lastHtml = '<span>直近 ' + L.k.toLocaleString('ja-JP') + '回</span><span class="mute">的中 ' + L.hits.toLocaleString('ja-JP') + '回</span><span class="st ' + (L.net > 0 ? 'good' : 'none') + '">' + sgn(L.net) + '</span>';
+  if (!montage) {
+    $('board').innerHTML = boardHtml();
+    document.querySelectorAll('#stats .stat .v').forEach((el, idx) => {
+      const key = 's' + idx;
+      if (PREV[key] !== undefined && PREV[key] !== el.textContent) el.classList.add('bump');
+      PREV[key] = el.textContent;
+    });
   }
-  $('last').innerHTML = '<div class="last">' + lastHtml + '</div>';
-
+  $('hstat').innerHTML = histHtml();
+  $('hnote').textContent = S.runs && S.runs < 30 ? '回数が少ないうちは参考程度' : '';
   $('chart').innerHTML = chartSvg();
   $('legend').innerHTML = S.series.length > 1 ? '<span style="color:var(--lime)">━</span> 実際 <span style="color:var(--pink)">┅</span> 期待どおり' : '';
-
   $('per').innerHTML = PICKS.map((pk, k) => {
     const p = S.per[k];
     const r = S.runs ? p.back / (S.runs * CFG.UNIT) : null;
@@ -635,7 +755,7 @@ function montage(k, dur, done) {
       lastVis = now;
       if (lastOrder) packShot(lastOrder, now / 1000);
       ctrSet(ran.toLocaleString('ja-JP'), '/ ' + k.toLocaleString('ja-JP') + '回', '#FFC83D', ran >= 1000 ? 24 : 30);
-      updateSim();
+      updateSim(true);
     }
     if (f >= 1) { done(); return; }
     raf = requestAnimationFrame(frame);
@@ -650,12 +770,13 @@ function run1() {
   setDock(true);
   animateRace(order, () => {
     const r = runOnce(order);
-    SIM.last = { type: 'one', order: order, net: r.net, any: r.any };
+    const pTri = orderProb(MODEL, order);
+    SIM.last = { type: 'one', order: order, net: r.net, any: r.any, p: pTri, rar: rarityOf(MODEL, pTri) };
     busy = false;
     setDock(false);
     updateSim();
     toast(r.net);
-    if (r.net > 0) confetti();
+    if (r.net > 0 || SIM.last.rar.key === 'ultra') confetti();
   });
 }
 
@@ -703,6 +824,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'run10') runN(10);
   else if (act === 'run100') runN(100);
   else if (act === 'run1000') runN(1000);
+  else if (act === 'toggleall') { SIM.showAll = !SIM.showAll; updateSim(true); }
   else if (act === 'reset') { if (!busy) { newSim(); renderSim(); } }
 });
 
