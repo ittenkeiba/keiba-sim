@@ -1,756 +1,222 @@
-<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0A1A">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="競馬シミュ">
-<title>競馬シミュレーター</title>
-<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#0B0A1A; --card:#14122E; --line:#2B2856; --line2:#4A4780;
-  --text:#EEEBFF; --mute:#A9A6D6; --mute2:#8C89BD;
-  --lime:#C6FF3D; --pink:#FF3D81; --gold:#FFC83D; --aqua:#3DE8FF;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic New',system-ui,sans-serif;-webkit-text-size-adjust:100%}
-body{height:100dvh;position:relative;overflow:hidden}
-body::before,body::after{content:"";position:fixed;width:260px;height:260px;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0}
-body::before{top:-90px;right:-80px;background:var(--pink);opacity:.2}
-body::after{bottom:-100px;left:-90px;background:var(--lime);opacity:.14}
-main{position:relative;z-index:1;max-width:430px;height:100dvh;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) 16px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
-.disp{font-family:'Dela Gothic One',sans-serif;font-weight:400}
-.row{display:flex;align-items:center}
-.between{justify-content:space-between}
-.mute{color:var(--mute)}
-.small{font-size:11px}
-.tag{background:var(--lime);color:#0B0A1A;font-weight:900;font-size:11px;padding:3px 9px;border-radius:999px;flex:none}
-.tag-line{font-size:10px;color:var(--mute);border:1px solid var(--line2);padding:2px 7px;border-radius:999px;flex:none}
-.good{color:var(--lime)}
-.weak{color:var(--pink)}
-.none{color:var(--mute)}
-
-.err{background:var(--card);border:1px solid var(--pink);border-radius:14px;padding:16px;line-height:1.7;font-size:14px;margin:auto}
-.lock{margin:auto;width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px;text-align:center}
-.lock .ico{font-size:13px;color:var(--mute);letter-spacing:.15em}
-.lock h1{font-size:20px;margin:0}
-.lock input{width:100%;box-sizing:border-box;background:var(--card);border:1.5px solid var(--line2);color:var(--text);font-family:'Dela Gothic One',sans-serif;font-size:22px;letter-spacing:.2em;text-align:center;border-radius:12px;padding:12px;-webkit-text-security:disc}
-.lock input:focus{outline:none;border-color:var(--lime)}
-.lock .err-msg{color:var(--pink);font-size:12px;min-height:16px}
-.lock .shake{animation:shake .3s}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-
-
-.racenav{display:flex;align-items:center;gap:6px;flex:none}
-.races{display:flex;gap:6px;overflow-x:auto;flex:1 1 auto;min-width:0;scrollbar-width:none;scroll-behavior:smooth}
-.races::-webkit-scrollbar{display:none}
-.rc{flex:none;border:1px solid var(--line2);background:var(--card);color:var(--text);font-family:inherit;font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px}
-.rc[aria-pressed="true"]{background:var(--lime);color:#0B0A1A;border-color:var(--lime);font-weight:900}
-.navbtn{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit}
-.navbtn:active{background:var(--line)}
-.capline{flex:none;text-align:center;font-size:11px;color:var(--mute);min-height:14px}
-
-.head{flex:none}
-
-.strip{flex:none;display:grid;gap:6px}
-.mbet{position:relative;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:7px 4px 8px;text-align:center;min-width:0}
-.mbet.best{border-color:var(--gold);box-shadow:0 0 12px rgba(255,200,61,.45)}
-.mbet .mt{font-size:10px;color:var(--mute);display:block;white-space:nowrap}
-.mbet .mchips{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:3px}
-.mbet .mn{font-size:10px;color:var(--mute2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-.mbet .mev{display:block;font-family:'Dela Gothic One',sans-serif;font-size:15px;margin-top:2px}
-.mbet .crown{position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#0B0A1A;font-size:9px;font-weight:900;padding:1px 6px;border-radius:999px;white-space:nowrap}
-.chip{border-radius:50%;border:2px solid var(--lime);color:var(--lime);font-weight:900;display:flex;align-items:center;justify-content:center;flex:none}
-.chip.xs{width:20px;height:20px;font-size:10px;border-width:1.5px}
-.chip.pk{border-color:var(--pink);color:var(--pink)}
-
-.oval{flex:1 1 auto;min-height:0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px;display:flex}
-.oval svg{display:block;width:100%;height:100%}
-
-.result{flex:none;min-height:44px;display:flex;flex-direction:column;justify-content:center;gap:2px}
-.result .ord{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
-.result .ord b{font-family:'Dela Gothic One',sans-serif;font-weight:400;font-size:13px;margin-left:2px}
-.result .tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--mute)}
-.result .rar{font-family:'Dela Gothic One',sans-serif;font-size:11px;padding:1px 8px;border-radius:999px;border:1.3px solid}
-.result .badge{font-weight:900;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--lime);color:#0B0A1A}
-.result .badge.miss{background:var(--line);color:var(--mute)}
-.result .net{font-family:'Dela Gothic One',sans-serif;font-size:15px}
-.placeholder{color:var(--mute2);font-size:12px}
-
-.stats{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:6px 4px;text-align:center}
-.stat .k{font-size:9.5px;color:var(--mute);white-space:nowrap}
-.stat .v{font-family:'Dela Gothic One',sans-serif;font-size:15px;margin-top:1px}
-.stat .s{font-size:9px;color:var(--mute2);margin-top:1px}
-
-.dock{flex:none;display:flex;flex-direction:column;gap:6px}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border:0;border-radius:13px;background:var(--lime);color:#0B0A1A;font-family:inherit;font-weight:900;font-size:17px;cursor:pointer;animation:ring 1.8s infinite}
-.btn.ghost{background:var(--card);border:1.5px solid var(--lime);color:var(--lime);animation:none;height:38px;font-size:13px}
-.btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.btn[disabled]{opacity:.45;cursor:default;animation:none}
-.runs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.foot{font-size:9.5px;color:var(--mute2);text-align:left;line-height:1.3;margin:0;flex:1;min-width:0}
-.reset{background:none;border:0;color:var(--mute2);font-family:inherit;font-size:10.5px;text-decoration:underline;padding:2px;flex:none;white-space:nowrap}
-
-#toast{position:fixed;left:50%;bottom:32vh;transform:translate(-50%,10px);opacity:0;background:var(--lime);color:#0B0A1A;font-family:'Dela Gothic One',sans-serif;font-size:22px;padding:7px 20px;border-radius:999px;z-index:5;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 0 24px rgba(198,255,61,.6)}
-#toast.on{opacity:1;transform:translate(-50%,0)}
-#toast.neg{background:var(--card);color:var(--mute);border:1px solid var(--line2);box-shadow:none}
-#toast.milestone{background:var(--gold);color:#0B0A1A;font-size:18px;box-shadow:0 0 28px rgba(255,200,61,.7)}
-#confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2}
-#confetti span{position:absolute;top:0;animation:fall linear forwards}
-.bump{animation:bump .35s ease-out}
-
-@keyframes ring{0%{box-shadow:0 0 0 0 rgba(198,255,61,.55)}70%{box-shadow:0 0 0 14px rgba(198,255,61,0)}100%{box-shadow:0 0 0 0 rgba(198,255,61,0)}}
-@keyframes fall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(110vh) rotate(600deg)}}
-@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-</style>
-</head>
-<body>
-<main id="app"><p class="foot" style="margin:auto">読み込み中…</p></main>
-<div id="toast" aria-live="polite"></div>
-<div id="confetti" aria-hidden="true"></div>
-
-<script>
-/*LOGIC_START*/
-const CFG = {
-  UNIT: 100,
-  MIN_P: { tan: 0.05, fuku: 0.20, wide: 0.10 }
-};
-
-function pairKey(a, b) { return a < b ? a + '-' + b : b + '-' + a; }
-
-function forEachTriple(w, S, cb) {
-  const n = w.length;
-  for (let a = 0; a < n; a++) {
-    const pa = w[a] / S;
-    for (let b = 0; b < n; b++) {
-      if (b === a) continue;
-      const pb = w[b] / (S - w[a]);
-      for (let c = 0; c < n; c++) {
-        if (c === a || c === b) continue;
-        const pc = w[c] / (S - w[a] - w[b]);
-        cb(a, b, c, pa * pb * pc);
-      }
+{
+  "sample": false,
+  "date": "2026-09-25",
+  "password": "LLX855",
+  "races": [
+    {
+      "race": "1R ランチタイム3歳未格付選抜馬イ",
+      "course": "ダート800m",
+      "note": "",
+      "horses": [
+        {"no": 8, "name": "8番", "power": 76},
+        {"no": 6, "name": "6番", "power": 71},
+        {"no": 2, "name": "2番", "power": 68},
+        {"no": 10, "name": "10番", "power": 67},
+        {"no": 4, "name": "4番", "power": 55},
+        {"no": 12, "name": "12番", "power": 53},
+        {"no": 3, "name": "3番", "power": 50},
+        {"no": 11, "name": "11番", "power": 47},
+        {"no": 9, "name": "9番", "power": 46},
+        {"no": 5, "name": "5番", "power": 45},
+        {"no": 1, "name": "1番", "power": 40},
+        {"no": 7, "name": "7番", "power": 39}
+      ]
+    },
+    {
+      "race": "2R 3歳未格付選抜馬ア",
+      "course": "ダート800m",
+      "note": "",
+      "horses": [
+        {"no": 11, "name": "11番", "power": 79},
+        {"no": 9, "name": "9番", "power": 70},
+        {"no": 6, "name": "6番", "power": 68},
+        {"no": 3, "name": "3番", "power": 66},
+        {"no": 2, "name": "2番", "power": 56},
+        {"no": 5, "name": "5番", "power": 55},
+        {"no": 7, "name": "7番", "power": 51},
+        {"no": 12, "name": "12番", "power": 50},
+        {"no": 10, "name": "10番", "power": 49},
+        {"no": 1, "name": "1番", "power": 48},
+        {"no": 4, "name": "4番", "power": 43},
+        {"no": 8, "name": "8番", "power": 41}
+      ]
+    },
+    {
+      "race": "3R ドリームチャレンジ2歳新馬イ",
+      "course": "ダート1400m",
+      "note": "",
+      "horses": [
+        {"no": 4, "name": "4番", "power": 88},
+        {"no": 1, "name": "1番", "power": 83},
+        {"no": 5, "name": "5番", "power": 73},
+        {"no": 2, "name": "2番", "power": 59},
+        {"no": 3, "name": "3番", "power": 58}
+      ]
+    },
+    {
+      "race": "4R ドリームチャレンジ2歳新馬ア",
+      "course": "ダート1400m",
+      "note": "",
+      "horses": [
+        {"no": 6, "name": "6番", "power": 83},
+        {"no": 1, "name": "1番", "power": 78},
+        {"no": 2, "name": "2番", "power": 67},
+        {"no": 3, "name": "3番", "power": 65},
+        {"no": 4, "name": "4番", "power": 57},
+        {"no": 5, "name": "5番", "power": 51}
+      ]
+    },
+    {
+      "race": "5R 3歳六",
+      "course": "ダート1400m",
+      "note": "",
+      "horses": [
+        {"no": 3, "name": "3番", "power": 84},
+        {"no": 7, "name": "7番", "power": 71},
+        {"no": 6, "name": "6番", "power": 62},
+        {"no": 1, "name": "1番", "power": 57},
+        {"no": 8, "name": "8番", "power": 56},
+        {"no": 9, "name": "9番", "power": 52},
+        {"no": 12, "name": "12番", "power": 51},
+        {"no": 2, "name": "2番", "power": 50},
+        {"no": 5, "name": "5番", "power": 49},
+        {"no": 10, "name": "10番", "power": 48},
+        {"no": 11, "name": "11番", "power": 46},
+        {"no": 4, "name": "4番", "power": 43}
+      ]
+    },
+    {
+      "race": "6R 特選C3二",
+      "course": "ダート1500m",
+      "note": "",
+      "horses": [
+        {"no": 7, "name": "7番", "power": 76},
+        {"no": 3, "name": "3番", "power": 69},
+        {"no": 4, "name": "4番", "power": 68},
+        {"no": 11, "name": "11番", "power": 56},
+        {"no": 12, "name": "12番", "power": 55},
+        {"no": 1, "name": "1番", "power": 53},
+        {"no": 10, "name": "10番", "power": 47},
+        {"no": 8, "name": "8番", "power": 46},
+        {"no": 6, "name": "6番", "power": 43},
+        {"no": 2, "name": "2番", "power": 42},
+        {"no": 5, "name": "5番", "power": 40},
+        {"no": 9, "name": "9番", "power": 38}
+      ]
+    },
+    {
+      "race": "7R 特選C2選抜牝馬",
+      "course": "ダート1400m",
+      "note": "",
+      "horses": [
+        {"no": 4, "name": "4番", "power": 88},
+        {"no": 2, "name": "2番", "power": 71},
+        {"no": 6, "name": "6番", "power": 70},
+        {"no": 10, "name": "10番", "power": 56},
+        {"no": 9, "name": "9番", "power": 55},
+        {"no": 14, "name": "14番", "power": 54},
+        {"no": 7, "name": "7番", "power": 52},
+        {"no": 5, "name": "5番", "power": 51},
+        {"no": 11, "name": "11番", "power": 49},
+        {"no": 3, "name": "3番", "power": 46},
+        {"no": 13, "name": "13番", "power": 44},
+        {"no": 12, "name": "12番", "power": 41},
+        {"no": 8, "name": "8番", "power": 40},
+        {"no": 1, "name": "1番", "power": 39}
+      ]
+    },
+    {
+      "race": "8R 新生特別2歳一",
+      "course": "ダート1500m",
+      "note": "",
+      "horses": [
+        {"no": 6, "name": "6番", "power": 81},
+        {"no": 1, "name": "1番", "power": 73},
+        {"no": 7, "name": "7番", "power": 72},
+        {"no": 2, "name": "2番", "power": 66},
+        {"no": 4, "name": "4番", "power": 59},
+        {"no": 5, "name": "5番", "power": 57},
+        {"no": 3, "name": "3番", "power": 47}
+      ]
+    },
+    {
+      "race": "9R サファイア特別C3一",
+      "course": "ダート1400m",
+      "note": "",
+      "horses": [
+        {"no": 9, "name": "9番", "power": 92},
+        {"no": 2, "name": "2番", "power": 70},
+        {"no": 10, "name": "10番", "power": 67},
+        {"no": 3, "name": "3番", "power": 62},
+        {"no": 13, "name": "13番", "power": 61},
+        {"no": 8, "name": "8番", "power": 60},
+        {"no": 4, "name": "4番", "power": 53},
+        {"no": 1, "name": "1番", "power": 52},
+        {"no": 5, "name": "5番", "power": 51},
+        {"no": 12, "name": "12番", "power": 49},
+        {"no": 7, "name": "7番", "power": 47},
+        {"no": 11, "name": "11番", "power": 46},
+        {"no": 6, "name": "6番", "power": 43}
+      ]
+    },
+    {
+      "race": "10R 秋明菊特別C1選抜馬ア",
+      "course": "ダート800m",
+      "note": "",
+      "horses": [
+        {"no": 8, "name": "8番", "power": 87},
+        {"no": 12, "name": "12番", "power": 68},
+        {"no": 6, "name": "6番", "power": 67},
+        {"no": 2, "name": "2番", "power": 66},
+        {"no": 7, "name": "7番", "power": 56},
+        {"no": 11, "name": "11番", "power": 55},
+        {"no": 3, "name": "3番", "power": 49},
+        {"no": 4, "name": "4番", "power": 48},
+        {"no": 10, "name": "10番", "power": 47},
+        {"no": 5, "name": "5番", "power": 46},
+        {"no": 1, "name": "1番", "power": 45},
+        {"no": 9, "name": "9番", "power": 40}
+      ]
+    },
+    {
+      "race": "11R 紅葉月特別B1二B2",
+      "course": "ダート1400m",
+      "note": "",
+      "horses": [
+        {"no": 2, "name": "2番", "power": 82},
+        {"no": 8, "name": "8番", "power": 68},
+        {"no": 12, "name": "12番", "power": 58},
+        {"no": 1, "name": "1番", "power": 57},
+        {"no": 13, "name": "13番", "power": 56},
+        {"no": 9, "name": "9番", "power": 55},
+        {"no": 6, "name": "6番", "power": 52},
+        {"no": 14, "name": "14番", "power": 49},
+        {"no": 11, "name": "11番", "power": 48},
+        {"no": 5, "name": "5番", "power": 45},
+        {"no": 3, "name": "3番", "power": 44},
+        {"no": 10, "name": "10番", "power": 41},
+        {"no": 4, "name": "4番", "power": 40},
+        {"no": 7, "name": "7番", "power": 39}
+      ]
+    },
+    {
+      "race": "12R テレ玉BACHプラザ特別選抜馬",
+      "course": "ダート2000m",
+      "note": "",
+      "horses": [
+        {"no": 8, "name": "8番", "power": 82},
+        {"no": 3, "name": "3番", "power": 80},
+        {"no": 2, "name": "2番", "power": 61},
+        {"no": 10, "name": "10番", "power": 60},
+        {"no": 7, "name": "7番", "power": 58},
+        {"no": 1, "name": "1番", "power": 53},
+        {"no": 12, "name": "12番", "power": 50},
+        {"no": 11, "name": "11番", "power": 49},
+        {"no": 9, "name": "9番", "power": 47},
+        {"no": 5, "name": "5番", "power": 46},
+        {"no": 6, "name": "6番", "power": 45},
+        {"no": 4, "name": "4番", "power": 42}
+      ]
     }
-  }
+  ]
 }
-
-function computeModel(horses) {
-  const n = horses.length;
-  const w = horses.map(h => Number(h.power));
-  const S = w.reduce((x, y) => x + y, 0);
-  const win = new Array(n).fill(0);
-  const top3 = new Array(n).fill(0);
-  const p2 = new Array(n).fill(0);
-  const p3 = new Array(n).fill(0);
-  let pMax = 0;
-  const quinella = {};
-  const wide = {};
-  const add = (o, k, p) => { o[k] = (o[k] || 0) + p; };
-  forEachTriple(w, S, (a, b, c, p) => {
-    win[a] += p;
-    p2[b] += p; p3[c] += p;
-    if (p > pMax) pMax = p;
-    top3[a] += p; top3[b] += p; top3[c] += p;
-    add(quinella, pairKey(a, b), p);
-    add(wide, pairKey(a, b), p);
-    add(wide, pairKey(a, c), p);
-    add(wide, pairKey(b, c), p);
-  });
-  return { n, w, S, win, p2, p3, pMax, top3, quinella, wide };
-}
-
-function buildOddsMaps(data) {
-  const noToIdx = {};
-  data.horses.forEach((h, i) => { noToIdx[h.no] = i; });
-  const toMap = (list) => {
-    const m = {};
-    (list || []).forEach(x => {
-      const a = noToIdx[x.pair[0]], b = noToIdx[x.pair[1]];
-      if (a === undefined || b === undefined) return;
-      m[pairKey(a, b)] = Number(x.odds);
-    });
-    return m;
-  };
-  return { umaren: toMap(data.umaren), wide: toMap(data.wide) };
-}
-
-function makeCand(idx, p, odds) {
-  const o = (odds === undefined || odds === null || isNaN(odds)) ? null : Number(odds);
-  return { idx, p, odds: o, ev: o === null ? null : p * o };
-}
-
-function rankCands(cands, minP) {
-  let pool = cands.filter(c => c.p >= minP);
-  if (!pool.length) pool = cands.slice();
-  const withOdds = pool.filter(c => c.odds !== null);
-  if (withOdds.length) pool = withOdds;
-  return pool.slice().sort((x, y) => (y.ev !== null ? y.ev : y.p) - (x.ev !== null ? x.ev : x.p));
-}
-
-function choosePicks(data, model, maps) {
-  const H = data.horses;
-  const picks = [];
-  const tan = rankCands(H.map((h, i) => makeCand([i], model.win[i], h.tan)), CFG.MIN_P.tan)[0];
-  if (tan) picks.push(Object.assign({ type: 'tan', label: '単勝', unit: '1点' }, tan));
-  const fuku = rankCands(H.map((h, i) => makeCand([i], model.top3[i], h.fuku)), CFG.MIN_P.fuku)[0];
-  if (fuku) picks.push(Object.assign({ type: 'fuku', label: '複勝', unit: '1点' }, fuku));
-  const wd = Object.keys(model.wide).map(k => {
-    const [a, b] = k.split('-').map(Number);
-    return makeCand([a, b], model.wide[k], maps.wide[k]);
-  });
-  const wdBest = rankCands(wd, CFG.MIN_P.wide)[0];
-  if (wdBest) picks.push(Object.assign({ type: 'wide', label: 'ワイド', unit: '1点' }, wdBest));
-  return picks;
-}
-
-function isHit(pick, order) {
-  const f = order[0], s = order[1];
-  const top3 = order.slice(0, 3);
-  if (pick.type === 'tan') return f === pick.idx[0];
-  if (pick.type === 'fuku') return top3.indexOf(pick.idx[0]) >= 0;
-  if (pick.type === 'umaren') return (f === pick.idx[0] && s === pick.idx[1]) || (f === pick.idx[1] && s === pick.idx[0]);
-  if (pick.type === 'wide') return top3.indexOf(pick.idx[0]) >= 0 && top3.indexOf(pick.idx[1]) >= 0;
-  return false;
-}
-
-function summarize(picks, model) {
-  let anyHit = 0, expBack = 0;
-  forEachTriple(model.w, model.S, (a, b, c, p) => {
-    const order = [a, b, c];
-    let hit = false, back = 0;
-    picks.forEach(pk => {
-      if (isHit(pk, order)) { hit = true; back += pk.odds !== null ? pk.odds * CFG.UNIT : 0; }
-    });
-    if (hit) anyHit += p;
-    expBack += p * back;
-  });
-  const cost = picks.length * CFG.UNIT;
-  const allOdds = picks.every(pk => pk.odds !== null);
-  return { anyHit, cost, roi: allOdds && cost ? expBack / cost : null, goodCount: picks.filter(pk => pk.ev !== null && pk.ev >= 1).length };
-}
-
-function sampleOrder(w, rnd) {
-  const r = rnd || Math.random;
-  const pool = w.map((_, i) => i);
-  const order = [];
-  while (pool.length) {
-    let sum = 0;
-    pool.forEach(i => { sum += w[i]; });
-    let x = r() * sum, pick = pool.length - 1;
-    for (let k = 0; k < pool.length; k++) {
-      x -= w[pool[k]];
-      if (x <= 0) { pick = k; break; }
-    }
-    order.push(pool.splice(pick, 1)[0]);
-  }
-  return order;
-}
-
-function orderProb(model, order) {
-  const w = model.w, S = model.S;
-  const a = order[0], b = order[1], c = order[2];
-  return (w[a] / S) * (w[b] / (S - w[a])) * (w[c] / (S - w[a] - w[b]));
-}
-
-function rarityOf(model, p) {
-  const ratio = model.pMax / p;
-  if (ratio >= 60) return { key: 'ultra', name: '超激レア', color: '#FFC83D' };
-  if (ratio >= 12) return { key: 'sr', name: '激レア', color: '#FF3D81' };
-  if (ratio >= 3) return { key: 'r', name: 'レア', color: '#3DE8FF' };
-  return { key: 'c', name: '王道', color: '#A9A6D6' };
-}
-
-function validateData(data) {
-  if (!data || !Array.isArray(data.horses) || data.horses.length < 3) return 'horses が3頭以上ありません。';
-  for (const h of data.horses) {
-    if (typeof h.no !== 'number' || !h.name || !(Number(h.power) > 0)) return '馬の no / name / power（0より大きい数）を確認してください。';
-  }
-  return '';
-}
-/*LOGIC_END*/
-
-const COLORS = ['#C6FF3D', '#FF3D81', '#FFC83D', '#3DE8FF', '#A78BFF', '#FF8A3D', '#EEEBFF', '#3DFFB0'];
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const yen = (n) => Math.round(n).toLocaleString('ja-JP') + '円';
-const sgn = (n) => (n >= 0 ? '+' : '−') + Math.abs(Math.round(n)).toLocaleString('ja-JP') + '円';
-const pct = (x, d) => (x * 100).toFixed(d === undefined ? 1 : d) + '%';
-const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-let ROOT = null, RACES = [], CUR = 0;
-let DATA = null, MODEL = null, MAPS = null, PICKS = [], SUMMARY = null, HAS_ODDS = false;
-let SIM = null, busy = false, raf = 0, toastTimer = 0;
-let HG = [], HI = [], HL = [];
-
-function nameOf(i) { return DATA.horses[i].name; }
-function noOf(i) { return DATA.horses[i].no; }
-function colorOf(i) { return COLORS[i % COLORS.length]; }
-function chips(idx, cls) {
-  return idx.map(i => '<span class="chip xs ' + (cls || '') + '" style="border-color:' + colorOf(i) + ';color:' + colorOf(i) + '">' + noOf(i) + '</span>').join('');
-}
-
-function raceChips() {
-  if (RACES.length < 2) return '';
-  const chipsHtml = RACES.map((r, i) =>
-    '<button class="rc" data-act="pickrace" data-i="' + i + '" aria-pressed="' + (i === CUR) + '">' + esc(r.race || ((i + 1) + 'R')) + '</button>'
-  ).join('');
-  return '<div class="racenav">' +
-    '<button class="navbtn" data-act="prevrace" aria-label="前のレース">‹</button>' +
-    '<div class="races" role="group" aria-label="レース選択">' + chipsHtml + '</div>' +
-    '<button class="navbtn" data-act="nextrace" aria-label="次のレース">›</button>' +
-    '</div>';
-}
-
-/* ---------- track ---------- */
-const TR = { cx: 180, cy: 88, R: 50, L: 150, W: 58 };
-let TRG = { sp: 6, scale: 1 };
-let CT1 = null, CT2 = null;
-
-function trackPos(p, d) {
-  const r = TR.R + d, L = TR.L, cx = TR.cx, cy = TR.cy;
-  const total = 2 * L + 2 * Math.PI * r;
-  let s = (((p % 1) + 1) % 1) * total;
-  const half = L / 2, arc = Math.PI * r;
-  if (s < half) return { x: cx + s, y: cy + r, a: 0 };
-  s -= half;
-  if (s < arc) { const phi = Math.PI / 2 - s / r; return { x: cx + half + r * Math.cos(phi), y: cy + r * Math.sin(phi), a: (phi - Math.PI / 2) * 180 / Math.PI }; }
-  s -= arc;
-  if (s < L) return { x: cx + half - s, y: cy - r, a: 180 };
-  s -= L;
-  if (s < arc) { const phi = -Math.PI / 2 - s / r; return { x: cx - half + r * Math.cos(phi), y: cy + r * Math.sin(phi), a: (phi - Math.PI / 2) * 180 / Math.PI }; }
-  s -= arc;
-  return { x: cx - half + s, y: cy + r, a: 0 };
-}
-
-function trackSvg() {
-  const H = DATA.horses, n = H.length;
-  const cx = TR.cx, cy = TR.cy, R = TR.R, L = TR.L, W = TR.W, half = L / 2;
-  const sp = n > 1 ? Math.min(9, (W - 8) / (n - 1)) : 0;
-  TRG = { sp: sp, scale: Math.max(0.42, Math.min(1.25, sp / 7)) };
-  const path = (r) => 'M' + (cx - half) + ',' + (cy + r) + ' L' + (cx + half) + ',' + (cy + r) +
-    ' A' + r + ',' + r + ' 0 0 0 ' + (cx + half) + ',' + (cy - r) +
-    ' L' + (cx - half) + ',' + (cy - r) +
-    ' A' + r + ',' + r + ' 0 0 0 ' + (cx - half) + ',' + (cy + r) + ' Z';
-  const dirt = /ダ/.test(DATA.course || '');
-  const band = dirt ? '#6B4A31' : '#2A6B43';
-  const infield = dirt ? '#1B2A22' : '#0F2A1D';
-  const fs = n > 10 ? 6 : 7.5;
-  const horses = H.map((h, i) => {
-    const coat = COLORS[(i + 3) % COLORS.length];
-    return '<g id="hg' + i + '"><g id="hi' + i + '">' +
-      '<ellipse cx="0" cy="1.1" rx="6.6" ry="3.1" style="fill:#000;opacity:.25"/>' +
-      '<ellipse cx="0" cy="0" rx="6.2" ry="2.9" style="fill:#5A3A22"/>' +
-      '<ellipse cx="6.9" cy="0" rx="3.2" ry="1.6" style="fill:#5A3A22"/>' +
-      '<circle cx="0.5" cy="0" r="2.2" style="fill:' + colorOf(i) + ';stroke:#0B0A1A;stroke-width:.5"/>' +
-      '</g><text id="hl' + i + '" x="0" y="-7" text-anchor="middle" style="font-size:' + fs + 'px;font-weight:900;fill:#fff;stroke:#0B0A1A;stroke-width:1.8;paint-order:stroke;opacity:0">' + h.no + '</text></g>';
-  }).join('');
-  return '<svg viewBox="0 0 360 176" preserveAspectRatio="xMidYMid meet" role="img" aria-label="コースを1周するレースの映像">' +
-    '<path d="' + path(R - W / 2) + '" style="fill:' + infield + '"/>' +
-    '<path d="' + path(R) + '" style="fill:none;stroke:' + band + ';stroke-width:' + W + '"/>' +
-    '<path d="' + path(R - W / 2) + '" style="fill:none;stroke:#EEEBFF;stroke-opacity:.6;stroke-width:1"/>' +
-    '<path d="' + path(R + W / 2) + '" style="fill:none;stroke:#EEEBFF;stroke-opacity:.6;stroke-width:1"/>' +
-    '<line x1="' + cx + '" x2="' + cx + '" y1="' + (cy + R - W / 2) + '" y2="' + (cy + R + W / 2) + '" style="stroke:#fff;stroke-width:1.6;stroke-dasharray:3 3"/>' +
-    '<text id="ct1" x="' + cx + '" y="' + (cy + 6) + '" text-anchor="middle" style="font-family:\'Dela Gothic One\',sans-serif;font-size:22px;fill:#C6FF3D">READY</text>' +
-    '<text id="ct2" x="' + cx + '" y="' + (cy + 20) + '" text-anchor="middle" style="font-size:7.5px;fill:#A9A6D6">スタート待ち</text>' +
-    horses + '</svg>';
-}
-
-function ctrSet(big, cap, color, size) {
-  if (!CT1) return;
-  CT1.textContent = big; CT1.style.fill = color || '#C6FF3D'; CT1.style.fontSize = (size || 22) + 'px';
-  CT2.textContent = cap || '';
-}
-function placeHorse(i, p, t) {
-  const n = DATA.horses.length;
-  const d = (i - (n - 1) / 2) * TRG.sp;
-  const q = trackPos(p, d);
-  HG[i].setAttribute('transform', 'translate(' + q.x.toFixed(1) + ' ' + q.y.toFixed(1) + ')');
-  const sx = TRG.scale * (1 + 0.06 * Math.sin(t * 24 + i));
-  HI[i].setAttribute('transform', 'rotate(' + q.a.toFixed(1) + ') scale(' + sx.toFixed(3) + ' ' + TRG.scale.toFixed(3) + ')');
-}
-function setLabels(set) { for (let i = 0; i < HL.length; i++) HL[i].style.opacity = set.has(i) ? 1 : 0; }
-function resetTrack() {
-  const n = DATA.horses.length;
-  for (let i = 0; i < n; i++) placeHorse(i, 0, 0);
-  setLabels(new Set());
-  ctrSet('READY', 'スタート待ち', '#C6FF3D', 20);
-}
-
-/* ---------- render ---------- */
-function betStrip() {
-  const cols = PICKS.length;
-  const items = PICKS.map((pk, k) => {
-    const hit = SIM && SIM.lastHits ? (SIM.lastHits[k] === true ? '<span class="chip xs" style="position:absolute;bottom:-7px;right:-4px;width:16px;height:16px;font-size:9px;background:var(--lime);border-color:var(--lime);color:#0B0A1A">✓</span>' : (SIM.lastHits[k] === false ? '<span class="chip xs" style="position:absolute;bottom:-7px;right:-4px;width:16px;height:16px;font-size:9px;background:var(--line);border-color:var(--line);color:var(--mute)">×</span>' : '')) : '';
-    const evLine = HAS_ODDS ? ('<span class="mev ' + (pk.ev === null ? 'none' : (pk.ev >= 1 ? 'good' : 'weak')) + '">EV ' + (pk.ev === null ? '—' : pk.ev.toFixed(2)) + '</span>') : '';
-    return '<div class="mbet" style="position:relative">' +
-      '<span class="mt">' + pk.label + pk.unit + '</span>' +
-      '<div class="mchips">' + chips(pk.idx, pk.type === 'wide' ? 'pk' : '') + '</div>' +
-      '<span class="mn">' + pk.idx.map(i => nameOf(i)).join('・') + '</span>' +
-      '<span class="mn">的中' + pct(pk.p, 0) + '</span>' + evLine + hit + '</div>';
-  }).join('');
-  $('strip').style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
-  $('strip').innerHTML = items;
-}
-
-function resultHtml() {
-  const L = SIM.last;
-  if (!L) return '<p class="placeholder">「1回 回す」でスタート。3頭の着順と確率が出ます。</p>';
-  const medal = ['var(--gold)', 'var(--lime)', 'var(--aqua)'];
-  const probs = [MODEL.win, MODEL.p2, MODEL.p3];
-  const ord = '<div class="ord">' + [0, 1, 2].map(r => {
-    const i = L.order[r];
-    return '<span style="color:' + medal[r] + '">' + (r + 1) + '着</span>' + chips([i]) + '<b>' + pct(probs[r][i]) + '</b>';
-  }).join('') + '</div>';
-  const netTag = HAS_ODDS ? ('<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span>') : '';
-  const streakLabel = HAS_ODDS ? '連続プラス' : '連続的中';
-  const tags = '<div class="tags">' +
-    '<span class="rar" style="color:' + L.rar.color + ';border-color:' + L.rar.color + '">' + L.rar.name + '</span>' +
-    '<span class="badge' + (L.any ? '' : ' miss') + '">' + (L.any ? '的中あり' : 'ハズレ') + '</span>' +
-    (SIM.streak >= 2 ? '<span>' + SIM.streak + streakLabel + '</span>' : '') +
-    netTag + '</div>';
-  return ord + tags;
-}
-
-function progressHtml(k, ran) {
-  return '<div class="ord"><span class="small mute">高速シミュレーション中…</span></div>' +
-    '<div class="tags"><span>' + ran.toLocaleString('ja-JP') + ' / ' + k.toLocaleString('ja-JP') + '回</span></div>';
-}
-
-function batchCapText(L) {
-  const netTxt = HAS_ODDS ? sgn(L.net) : ('的中率 ' + pct(L.hits / L.k, 0));
-  return '直近' + L.k.toLocaleString('ja-JP') + '回 ・ 的中' + L.hits.toLocaleString('ja-JP') + '回 ・ ' + netTxt;
-}
-
-function batchResultHtml() {
-  const L = SIM.last;
-  const medal = ['var(--gold)', 'var(--lime)', 'var(--aqua)'];
-  const top3 = DATA.horses.map((_, i) => i).sort((a, b) => SIM.winCount[b] - SIM.winCount[a]).slice(0, 3);
-  const top = '<div class="ord"><span class="small mute">1着が多い順</span>' + top3.map((i, r) => {
-    return '<span style="color:' + medal[r] + '">' + (r + 1) + '</span>' + chips([i]) + '<b>' + pct(SIM.winCount[i] / SIM.runs) + '</b>';
-  }).join('') + '</div>';
-  return top;
-}
-
-function updateStats(montage) {
-  const S = SIM;
-  const net = S.back - S.cost;
-  const roi = S.cost ? S.back / S.cost : null;
-  const oc = S.runs ? (net >= 0 ? 'good' : 'none') : 'none';
-  $('stats').style.gridTemplateColumns = HAS_ODDS ? 'repeat(4,1fr)' : 'repeat(2,1fr)';
-  const moneyCards = HAS_ODDS ?
-    '<div class="stat"><div class="k">累計収支</div><div class="v ' + oc + '">' + (S.runs ? sgn(net) : '—') + '</div><div class="s">払戻' + yen(S.back) + '</div></div>' +
-    '<div class="stat"><div class="k">回収率</div><div class="v ' + (roi === null ? 'none' : (roi >= 1 ? 'good' : 'weak')) + '">' + (roi === null ? '—' : Math.round(roi * 100) + '%') + '</div><div class="s">期待' + (SUMMARY.roi === null ? '—' : Math.round(SUMMARY.roi * 100) + '%') + '</div></div>'
-    : '';
-  $('stats').innerHTML =
-    '<div class="stat"><div class="k">試行回数</div><div class="v">' + S.runs.toLocaleString('ja-JP') + '</div><div class="s">回</div></div>' +
-    moneyCards +
-    '<div class="stat"><div class="k">的中率</div><div class="v">' + (S.runs ? pct(S.anyHit / S.runs, 0) : '—') + '</div><div class="s">計算' + pct(SUMMARY.anyHit, 0) + '</div></div>';
-  if (!montage) {
-    document.querySelectorAll('#stats .stat .v').forEach((el, idx) => {
-      const key = 's' + idx;
-      if (SIM._prev && SIM._prev[key] !== undefined && SIM._prev[key] !== el.textContent) el.classList.add('bump');
-    });
-  }
-  SIM._prev = {};
-  document.querySelectorAll('#stats .stat .v').forEach((el, idx) => { SIM._prev['s' + idx] = el.textContent; });
-}
-
-function updateAll(montage) {
-  updateStats(montage);
-  if (montage) return;
-  betStrip();
-  const isBatch = SIM.last && SIM.last.type === 'batch';
-  $('result').innerHTML = isBatch ? batchResultHtml() : resultHtml();
-  $('capline').textContent = isBatch ? batchCapText(SIM.last) : '';
-}
-
-function renderApp() {
-  const H = DATA.horses;
-  $('app').innerHTML =
-    raceChips() +
-    '<div class="head row between">' +
-      '<div class="row" style="gap:6px;min-width:0"><span class="tag">' + esc(DATA.race || 'レース') + '</span>' +
-      '<span class="mute small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(DATA.course || '') + ' ・ ' + H.length + '頭</span></div>' +
-      (DATA.sample ? '<span class="tag-line">SAMPLE</span>' : '<span class="tag-line">' + esc(DATA.date || '') + '</span>') +
-    '</div>' +
-    '<div class="strip" id="strip"></div>' +
-    '<div class="oval" id="ovalwrap"></div>' +
-    '<div class="capline" id="capline"></div>' +
-    '<div class="result" id="result"></div>' +
-    '<div class="stats" id="stats"></div>' +
-    '<div class="dock">' +
-      '<button class="btn" data-act="run1">1回 回す</button>' +
-      '<div class="runs"><button class="btn ghost" data-act="run10">×10</button><button class="btn ghost" data-act="run100">×100</button><button class="btn ghost" data-act="run1000">×1000</button></div>' +
-      '<div class="row" style="gap:8px;align-items:flex-start"><p class="foot">確率にもとづくシミュレーションです。的中・回収は保証されません。</p><button class="reset" data-act="reset">リセット</button></div>' +
-    '</div>';
-  $('ovalwrap').innerHTML = trackSvg();
-  const n = H.length;
-  HG = []; HI = []; HL = [];
-  for (let i = 0; i < n; i++) { HG.push($('hg' + i)); HI.push($('hi' + i)); HL.push($('hl' + i)); }
-  CT1 = $('ct1'); CT2 = $('ct2');
-  resetTrack();
-  betStrip();
-  updateStats(false);
-  $('result').innerHTML = resultHtml();
-  $('capline').textContent = '';
-  const sel = document.querySelector('.rc[aria-pressed="true"]');
-  if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-}
-
-/* ---------- run logic ---------- */
-function newSim() { SIM = { runs: 0, anyHit: 0, back: 0, cost: 0, streak: 0, best: 0, last: null, lastHits: null, winCount: DATA.horses.map(() => 0), _prev: {} }; }
-
-function runOnce(order) {
-  let back = 0, any = false;
-  const hits = PICKS.map((pk) => {
-    const hit = isHit(pk, order);
-    const pay = hit && pk.odds !== null ? Math.round(pk.odds * CFG.UNIT) : 0;
-    if (hit) any = true;
-    back += pay;
-    return hit;
-  });
-  const cost = PICKS.length * CFG.UNIT;
-  SIM.runs++; SIM.cost += cost; SIM.back += back;
-  if (any) SIM.anyHit++;
-  const success = HAS_ODDS ? (back - cost > 0) : any;
-  if (success) { SIM.streak++; if (SIM.streak > SIM.best) SIM.best = SIM.streak; } else SIM.streak = 0;
-  SIM.lastHits = hits;
-  SIM.winCount[order[0]]++;
-  return { net: back - cost, any };
-}
-
-function setDock(disabled) { document.querySelectorAll('.dock button').forEach(b => { b.disabled = disabled; }); }
-
-function toast(net, hitText) {
-  const t = $('toast');
-  if (HAS_ODDS) {
-    t.textContent = sgn(net);
-    t.className = 'on' + (net < 0 ? ' neg' : '');
-  } else {
-    t.textContent = hitText;
-    t.className = 'on' + (hitText === 'ハズレ' ? ' neg' : '');
-  }
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = ''; }, 1500);
-}
-function confetti() {
-  const box = $('confetti');
-  box.innerHTML = '';
-  if (reduce) return;
-  for (let i = 0; i < 34; i++) {
-    const s = document.createElement('span');
-    s.style.left = (Math.random() * 100) + '%';
-    s.style.width = (6 + Math.random() * 5) + 'px';
-    s.style.height = (8 + Math.random() * 8) + 'px';
-    s.style.background = COLORS[i % COLORS.length];
-    s.style.animationDuration = (2.3 + Math.random() * 2.2) + 's';
-    s.style.animationDelay = (-Math.random() * 2) + 's';
-    box.appendChild(s);
-  }
-  setTimeout(() => { box.innerHTML = ''; }, 4600);
-}
-
-function animateRace(order, done) {
-  cancelAnimationFrame(raf);
-  const H = DATA.horses, n = H.length;
-  resetTrack();
-  if (reduce) { done(); return; }
-  const rank = new Array(n);
-  order.forEach((idx, r) => { rank[idx] = r; });
-  const F = H.map((_, i) => 2.1 + rank[i] * 0.065 + Math.random() * 0.03);
-  const phase = H.map(() => Math.random() * 6.28);
-  const amp = H.map(() => 0.05 + Math.random() * 0.05);
-  const endAt = F[order[0]] + 0.5;
-  const t0 = performance.now();
-  const P = new Array(n).fill(0);
-  function frame(now) {
-    const t = (now - t0) / 1000;
-    for (let i = 0; i < n; i++) {
-      const u = Math.min(1, t / F[i]);
-      let p;
-      if (u < 1) p = Math.max(0, u + amp[i] * Math.sin(u * 9.4 + phase[i]) * (1 - u));
-      else p = 1 + Math.min(0.05, (t - F[i]) * 0.05);
-      P[i] = p; placeHorse(i, p, t);
-    }
-    const idx = P.map((_, i) => i).sort((a, b) => P[b] - P[a]);
-    setLabels(new Set(idx.slice(0, 3)));
-    if (t >= F[order[0]]) ctrSet(String(noOf(order[0])), '1着ゴール', colorOf(order[0]), 30);
-    else ctrSet(String(noOf(idx[0])), 'LEADER', colorOf(idx[0]), 30);
-    if (t >= endAt) { done(); return; }
-    raf = requestAnimationFrame(frame);
-  }
-  raf = requestAnimationFrame(frame);
-}
-
-function packShot(order, t) {
-  const n = order.length;
-  order.forEach((idx, r) => {
-    const p = 0.74 + 0.24 * (1 - (n > 1 ? r / (n - 1) : 0)) + (Math.random() - 0.5) * 0.01;
-    placeHorse(idx, p, t);
-  });
-  setLabels(new Set(order.slice(0, 3)));
-}
-
-function montage(k, dur, done) {
-  cancelAnimationFrame(raf);
-  resetTrack();
-  if (reduce) { for (let i = 0; i < k; i++) runOnce(sampleOrder(MODEL.w)); done(); return; }
-  const t0 = performance.now();
-  let ran = 0, lastVis = 0, lastOrder = null;
-  function frame(now) {
-    const f = Math.min(1, (now - t0) / (dur * 1000));
-    const target = Math.round(k * f);
-    while (ran < target) { lastOrder = sampleOrder(MODEL.w); runOnce(lastOrder); ran++; }
-    if (now - lastVis > 70 || f >= 1) {
-      lastVis = now;
-      if (lastOrder) packShot(lastOrder, now / 1000);
-      ctrSet(ran.toLocaleString('ja-JP'), '/ ' + k.toLocaleString('ja-JP') + '回', '#FFC83D', ran >= 1000 ? 20 : 26);
-      updateStats(true);
-      $('result').innerHTML = progressHtml(k, ran);
-    }
-    if (f >= 1) { done(lastOrder); return; }
-    raf = requestAnimationFrame(frame);
-  }
-  raf = requestAnimationFrame(frame);
-}
-
-function run1() {
-  if (busy) return;
-  const order = sampleOrder(MODEL.w);
-  busy = true; setDock(true);
-  animateRace(order, () => {
-    const r = runOnce(order);
-    const pTri = orderProb(MODEL, order);
-    SIM.last = { type: 'one', order: order, net: r.net, any: r.any, p: pTri, rar: rarityOf(MODEL, pTri) };
-    busy = false; setDock(false);
-    updateAll(false);
-    const success = HAS_ODDS ? r.net > 0 : r.any;
-    toast(r.net, r.any ? '的中！' : 'ハズレ');
-    if (success || SIM.last.rar.key === 'ultra') confetti();
-  });
-}
-
-function runN(k) {
-  if (busy) return;
-  busy = true; setDock(true);
-  const before = SIM.back - SIM.cost, hit0 = SIM.anyHit;
-  const dur = k <= 10 ? 1.0 : (k <= 100 ? 1.6 : 2.2);
-  montage(k, dur, (lastOrder) => {
-    const net = (SIM.back - SIM.cost) - before;
-    const hits = SIM.anyHit - hit0;
-    SIM.last = { type: 'batch', k: k, net: net, hits: hits, order: lastOrder };
-    SIM.lastHits = null;
-    busy = false; setDock(false);
-    updateAll(false);
-    const success = HAS_ODDS ? net > 0 : hits > 0;
-    toast(net, hits.toLocaleString('ja-JP') + '/' + k.toLocaleString('ja-JP') + ' 的中');
-    if (success && k >= 100) confetti();
-  });
-}
-
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-act]');
-  if (!b) return;
-  const act = b.getAttribute('data-act');
-  if (act === 'pickrace' || act === 'prevrace' || act === 'nextrace') {
-    let i = CUR;
-    if (act === 'pickrace') i = parseInt(b.getAttribute('data-i'), 10);
-    else if (act === 'prevrace') i = (CUR - 1 + RACES.length) % RACES.length;
-    else i = (CUR + 1) % RACES.length;
-    loadRace(i);
-    try { history.replaceState(null, '', '#r' + (i + 1)); } catch (err) {}
-    return;
-  }
-  if (!DATA) return;
-  if (act === 'run1') run1();
-  else if (act === 'run10') runN(10);
-  else if (act === 'run100') runN(100);
-  else if (act === 'run1000') runN(1000);
-  else if (act === 'reset') { if (!busy) { newSim(); renderApp(); } }
-});
-
-function loadRace(i) {
-  cancelAnimationFrame(raf); busy = false; CUR = i;
-  const r = RACES[i];
-  const d = Object.assign({}, r, { date: r.date || ROOT.date, sample: r.sample !== undefined ? r.sample : ROOT.sample });
-  const bad = validateData(d);
-  if (bad) {
-    DATA = null;
-    $('app').innerHTML = raceChips() + '<div class="err">' + esc(r.race || (i + 1) + 'R') + ' の内容を確認してください。<br>' + esc(bad) + '</div>';
-    return;
-  }
-  DATA = d;
-  MODEL = computeModel(DATA.horses);
-  MAPS = buildOddsMaps(DATA);
-  PICKS = choosePicks(DATA, MODEL, MAPS);
-  HAS_ODDS = PICKS.some(pk => pk.odds !== null);
-  SUMMARY = summarize(PICKS, MODEL);
-  newSim();
-  renderApp();
-}
-
-function enterApp() {
-  RACES = (ROOT && Array.isArray(ROOT.races) && ROOT.races.length) ? ROOT.races : [ROOT];
-  const m = /r(\d+)/.exec(location.hash);
-  let i = m ? parseInt(m[1], 10) - 1 : 0;
-  if (!(i >= 0 && i < RACES.length)) i = 0;
-  loadRace(i);
-}
-
-function showLock() {
-  $('app').innerHTML =
-    '<div class="lock">' +
-    '<div class="ico">PASSWORD</div>' +
-    '<h1 class="disp">合言葉を入力</h1>' +
-    '<p class="small mute" style="margin:0">noteの記事に書いてある、その日の合言葉を入れてや</p>' +
-    '<input id="pw" inputmode="text" autocomplete="off" autocapitalize="off" placeholder="・・・・">' +
-    '<p class="err-msg" id="pwerr"></p>' +
-    '<button class="btn" data-act="unlock">開ける</button>' +
-    '</div>';
-  $('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
-  $('pw').focus();
-}
-
-function tryUnlock() {
-  const v = $('pw').value.trim();
-  if (v && v === String(ROOT.password).trim()) {
-    try { localStorage.setItem('ik_pw', v); } catch (e) {}
-    enterApp();
-  } else {
-    $('pwerr').textContent = '合言葉が違うみたいや。';
-    const box = document.querySelector('.lock');
-    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
-    $('pw').value = '';
-    $('pw').focus();
-  }
-}
-
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-act="unlock"]');
-  if (b) tryUnlock();
-});
-
-async function boot() {
-  try {
-    const res = await fetch('race.json?ts=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    ROOT = await res.json();
-  } catch (e) {
-    $('app').innerHTML = '<div class="err">race.json を読み込めませんでした。<br>・ファイル名が race.json になっているか<br>・index.html と同じ場所に置いてあるか<br>・GitHub Pages のURLから開いているか（ダブルクリックで開くと読めません）</div>';
-    return;
-  }
-  if (ROOT.password) {
-    let saved = null;
-    try { saved = localStorage.getItem('ik_pw'); } catch (e) {}
-    if (saved !== String(ROOT.password).trim()) { showLock(); return; }
-  }
-  enterApp();
-}
-boot();
-</script>
-</body>
-</html>
