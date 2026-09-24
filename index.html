@@ -43,7 +43,7 @@ main{position:relative;z-index:1;max-width:430px;height:100dvh;margin:0 auto;pad
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
 
-.races{display:flex;gap:6px;overflow-x:auto;flex:none;scrollbar-width:none}
+.races{display:flex;gap:6px;overflow-x:auto;flex:none;scrollbar-width:none;scroll-behavior:smooth}
 .races::-webkit-scrollbar{display:none}
 .rc{flex:none;border:1px solid var(--line2);background:var(--card);color:var(--text);font-family:inherit;font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px}
 .rc[aria-pressed="true"]{background:var(--lime);color:#0B0A1A;border-color:var(--lime);font-weight:900}
@@ -415,12 +415,13 @@ function progressHtml(k, ran) {
 function batchResultHtml() {
   const L = SIM.last;
   const medal = ['var(--gold)', 'var(--lime)', 'var(--aqua)'];
-  const sample = L.order ? '<div class="ord"><span class="small mute">サンプル1回</span>' + [0, 1, 2].map(r => {
-    const i = L.order[r]; return '<span style="color:' + medal[r] + '">' + (r + 1) + '</span>' + chips([i]);
-  }).join('') + '</div>' : '';
+  const top3 = DATA.horses.map((_, i) => i).sort((a, b) => SIM.winCount[b] - SIM.winCount[a]).slice(0, 3);
+  const top = '<div class="ord"><span class="small mute">1着が多い順</span>' + top3.map((i, r) => {
+    return '<span style="color:' + medal[r] + '">' + (r + 1) + '</span>' + chips([i]) + '<b>' + pct(SIM.winCount[i] / SIM.runs) + '</b>';
+  }).join('') + '</div>';
   const netTag = HAS_ODDS ? ('<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span>') : ('<span style="margin-left:auto">的中率 ' + pct(L.hits / L.k, 0) + '</span>');
   const tags = '<div class="tags"><span>直近 ' + L.k.toLocaleString('ja-JP') + '回</span><span>的中 ' + L.hits.toLocaleString('ja-JP') + '回</span>' + netTag + '</div>';
-  return sample + tags;
+  return top + tags;
 }
 
 function updateStats(montage) {
@@ -482,11 +483,11 @@ function renderApp() {
   updateStats(false);
   $('result').innerHTML = resultHtml();
   const sel = document.querySelector('.rc[aria-pressed="true"]');
-  if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
 }
 
 /* ---------- run logic ---------- */
-function newSim() { SIM = { runs: 0, anyHit: 0, back: 0, cost: 0, streak: 0, best: 0, last: null, lastHits: null, _prev: {} }; }
+function newSim() { SIM = { runs: 0, anyHit: 0, back: 0, cost: 0, streak: 0, best: 0, last: null, lastHits: null, winCount: DATA.horses.map(() => 0), _prev: {} }; }
 
 function runOnce(order) {
   let back = 0, any = false;
@@ -503,6 +504,7 @@ function runOnce(order) {
   const success = HAS_ODDS ? (back - cost > 0) : any;
   if (success) { SIM.streak++; if (SIM.streak > SIM.best) SIM.best = SIM.streak; } else SIM.streak = 0;
   SIM.lastHits = hits;
+  SIM.winCount[order[0]]++;
   return { net: back - cost, any };
 }
 
