@@ -43,10 +43,14 @@ main{position:relative;z-index:1;max-width:430px;height:100dvh;margin:0 auto;pad
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
 
-.races{display:flex;gap:6px;overflow-x:auto;flex:none;scrollbar-width:none;scroll-behavior:smooth}
+.racenav{display:flex;align-items:center;gap:6px;flex:none}
+.races{display:flex;gap:6px;overflow-x:auto;flex:1 1 auto;min-width:0;scrollbar-width:none;scroll-behavior:smooth}
 .races::-webkit-scrollbar{display:none}
 .rc{flex:none;border:1px solid var(--line2);background:var(--card);color:var(--text);font-family:inherit;font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px}
 .rc[aria-pressed="true"]{background:var(--lime);color:#0B0A1A;border-color:var(--lime);font-weight:900}
+.navbtn{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit}
+.navbtn:active{background:var(--line)}
+.capline{flex:none;text-align:center;font-size:11px;color:var(--mute);min-height:14px}
 
 .head{flex:none}
 
@@ -278,7 +282,7 @@ const pct = (x, d) => (x * 100).toFixed(d === undefined ? 1 : d) + '%';
 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let ROOT = null, RACES = [], CUR = 0;
-let DATA = null, MODEL = null, MAPS = null, PICKS = [], BEST = 0, SUMMARY = null, HAS_ODDS = false;
+let DATA = null, MODEL = null, MAPS = null, PICKS = [], SUMMARY = null, HAS_ODDS = false;
 let SIM = null, busy = false, raf = 0, toastTimer = 0;
 let HG = [], HI = [], HL = [];
 
@@ -291,9 +295,14 @@ function chips(idx, cls) {
 
 function raceChips() {
   if (RACES.length < 2) return '';
-  return '<div class="races" role="group" aria-label="レース選択">' + RACES.map((r, i) =>
+  const chipsHtml = RACES.map((r, i) =>
     '<button class="rc" data-act="pickrace" data-i="' + i + '" aria-pressed="' + (i === CUR) + '">' + esc(r.race || ((i + 1) + 'R')) + '</button>'
-  ).join('') + '</div>';
+  ).join('');
+  return '<div class="racenav">' +
+    '<button class="navbtn" data-act="prevrace" aria-label="前のレース">‹</button>' +
+    '<div class="races" role="group" aria-label="レース選択">' + chipsHtml + '</div>' +
+    '<button class="navbtn" data-act="nextrace" aria-label="次のレース">›</button>' +
+    '</div>';
 }
 
 /* ---------- track ---------- */
@@ -375,10 +384,9 @@ function resetTrack() {
 function betStrip() {
   const cols = PICKS.length;
   const items = PICKS.map((pk, k) => {
-    const crown = k === BEST ? '<span class="crown">推し</span>' : '';
     const hit = SIM && SIM.lastHits ? (SIM.lastHits[k] === true ? '<span class="chip xs" style="position:absolute;bottom:-7px;right:-4px;width:16px;height:16px;font-size:9px;background:var(--lime);border-color:var(--lime);color:#0B0A1A">✓</span>' : (SIM.lastHits[k] === false ? '<span class="chip xs" style="position:absolute;bottom:-7px;right:-4px;width:16px;height:16px;font-size:9px;background:var(--line);border-color:var(--line);color:var(--mute)">×</span>' : '')) : '';
     const evLine = HAS_ODDS ? ('<span class="mev ' + (pk.ev === null ? 'none' : (pk.ev >= 1 ? 'good' : 'weak')) + '">EV ' + (pk.ev === null ? '—' : pk.ev.toFixed(2)) + '</span>') : '';
-    return '<div class="mbet' + (k === BEST ? ' best' : '') + '" style="position:relative">' + crown +
+    return '<div class="mbet" style="position:relative">' +
       '<span class="mt">' + pk.label + pk.unit + '</span>' +
       '<div class="mchips">' + chips(pk.idx, pk.type === 'wide' ? 'pk' : '') + '</div>' +
       '<span class="mn">' + pk.idx.map(i => nameOf(i)).join('・') + '</span>' +
@@ -412,6 +420,11 @@ function progressHtml(k, ran) {
     '<div class="tags"><span>' + ran.toLocaleString('ja-JP') + ' / ' + k.toLocaleString('ja-JP') + '回</span></div>';
 }
 
+function batchCapText(L) {
+  const netTxt = HAS_ODDS ? sgn(L.net) : ('的中率 ' + pct(L.hits / L.k, 0));
+  return '直近' + L.k.toLocaleString('ja-JP') + '回 ・ 的中' + L.hits.toLocaleString('ja-JP') + '回 ・ ' + netTxt;
+}
+
 function batchResultHtml() {
   const L = SIM.last;
   const medal = ['var(--gold)', 'var(--lime)', 'var(--aqua)'];
@@ -419,9 +432,7 @@ function batchResultHtml() {
   const top = '<div class="ord"><span class="small mute">1着が多い順</span>' + top3.map((i, r) => {
     return '<span style="color:' + medal[r] + '">' + (r + 1) + '</span>' + chips([i]) + '<b>' + pct(SIM.winCount[i] / SIM.runs) + '</b>';
   }).join('') + '</div>';
-  const netTag = HAS_ODDS ? ('<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span>') : ('<span style="margin-left:auto">的中率 ' + pct(L.hits / L.k, 0) + '</span>');
-  const tags = '<div class="tags"><span>直近 ' + L.k.toLocaleString('ja-JP') + '回</span><span>的中 ' + L.hits.toLocaleString('ja-JP') + '回</span>' + netTag + '</div>';
-  return top + tags;
+  return top;
 }
 
 function updateStats(montage) {
@@ -452,7 +463,9 @@ function updateAll(montage) {
   updateStats(montage);
   if (montage) return;
   betStrip();
-  $('result').innerHTML = (SIM.last && SIM.last.type === 'batch') ? batchResultHtml() : resultHtml();
+  const isBatch = SIM.last && SIM.last.type === 'batch';
+  $('result').innerHTML = isBatch ? batchResultHtml() : resultHtml();
+  $('capline').textContent = isBatch ? batchCapText(SIM.last) : '';
 }
 
 function renderApp() {
@@ -466,6 +479,7 @@ function renderApp() {
     '</div>' +
     '<div class="strip" id="strip"></div>' +
     '<div class="oval" id="ovalwrap"></div>' +
+    '<div class="capline" id="capline"></div>' +
     '<div class="result" id="result"></div>' +
     '<div class="stats" id="stats"></div>' +
     '<div class="dock">' +
@@ -482,6 +496,7 @@ function renderApp() {
   betStrip();
   updateStats(false);
   $('result').innerHTML = resultHtml();
+  $('capline').textContent = '';
   const sel = document.querySelector('.rc[aria-pressed="true"]');
   if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
 }
@@ -521,18 +536,6 @@ function toast(net, hitText) {
   }
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.className = ''; }, 1500);
-}
-const MILESTONES = [50, 100, 300, 500, 1000, 3000, 5000, 10000];
-function checkMilestone() {
-  const r = SIM.runs;
-  if (MILESTONES.indexOf(r) === -1) return false;
-  const t = $('toast');
-  t.textContent = r.toLocaleString('ja-JP') + '回 達成！';
-  t.className = 'on milestone';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = ''; }, 1800);
-  confetti();
-  return true;
 }
 function confetti() {
   const box = $('confetti');
@@ -626,7 +629,8 @@ function run1() {
     busy = false; setDock(false);
     updateAll(false);
     const success = HAS_ODDS ? r.net > 0 : r.any;
-    if (!checkMilestone()) { toast(r.net, r.any ? '的中！' : 'ハズレ'); if (success || SIM.last.rar.key === 'ultra') confetti(); }
+    toast(r.net, r.any ? '的中！' : 'ハズレ');
+    if (success || SIM.last.rar.key === 'ultra') confetti();
   });
 }
 
@@ -643,7 +647,8 @@ function runN(k) {
     busy = false; setDock(false);
     updateAll(false);
     const success = HAS_ODDS ? net > 0 : hits > 0;
-    if (!checkMilestone()) { toast(net, hits.toLocaleString('ja-JP') + '/' + k.toLocaleString('ja-JP') + ' 的中'); if (success && k >= 100) confetti(); }
+    toast(net, hits.toLocaleString('ja-JP') + '/' + k.toLocaleString('ja-JP') + ' 的中');
+    if (success && k >= 100) confetti();
   });
 }
 
@@ -651,8 +656,11 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const act = b.getAttribute('data-act');
-  if (act === 'pickrace') {
-    const i = parseInt(b.getAttribute('data-i'), 10);
+  if (act === 'pickrace' || act === 'prevrace' || act === 'nextrace') {
+    let i = CUR;
+    if (act === 'pickrace') i = parseInt(b.getAttribute('data-i'), 10);
+    else if (act === 'prevrace') i = (CUR - 1 + RACES.length) % RACES.length;
+    else i = (CUR + 1) % RACES.length;
     loadRace(i);
     try { history.replaceState(null, '', '#r' + (i + 1)); } catch (err) {}
     return;
@@ -680,11 +688,6 @@ function loadRace(i) {
   MAPS = buildOddsMaps(DATA);
   PICKS = choosePicks(DATA, MODEL, MAPS);
   HAS_ODDS = PICKS.some(pk => pk.odds !== null);
-  BEST = PICKS.reduce((bi, pk, k) => {
-    const v = pk.ev === null ? pk.p : pk.ev;
-    const bv = PICKS[bi].ev === null ? PICKS[bi].p : PICKS[bi].ev;
-    return v > bv ? k : bi;
-  }, 0);
   SUMMARY = summarize(PICKS, MODEL);
   newSim();
   renderApp();
