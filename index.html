@@ -31,7 +31,17 @@ main{position:relative;z-index:1;max-width:430px;height:100dvh;margin:0 auto;pad
 .good{color:var(--lime)}
 .weak{color:var(--pink)}
 .none{color:var(--mute)}
+
 .err{background:var(--card);border:1px solid var(--pink);border-radius:14px;padding:16px;line-height:1.7;font-size:14px;margin:auto}
+.lock{margin:auto;width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.lock .ico{font-size:13px;color:var(--mute);letter-spacing:.15em}
+.lock h1{font-size:20px;margin:0}
+.lock input{width:100%;box-sizing:border-box;background:var(--card);border:1.5px solid var(--line2);color:var(--text);font-family:'Dela Gothic One',sans-serif;font-size:22px;letter-spacing:.2em;text-align:center;border-radius:12px;padding:12px;-webkit-text-security:disc}
+.lock input:focus{outline:none;border-color:var(--lime)}
+.lock .err-msg{color:var(--pink);font-size:12px;min-height:16px}
+.lock .shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
 
 .races{display:flex;gap:6px;overflow-x:auto;flex:none;scrollbar-width:none}
 .races::-webkit-scrollbar{display:none}
@@ -45,7 +55,7 @@ main{position:relative;z-index:1;max-width:430px;height:100dvh;margin:0 auto;pad
 .mbet.best{border-color:var(--gold);box-shadow:0 0 12px rgba(255,200,61,.45)}
 .mbet .mt{font-size:10px;color:var(--mute);display:block;white-space:nowrap}
 .mbet .mchips{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:3px}
-.mbet .mn{font-size:10px;color:var(--mute2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbet .mn{font-size:10px;color:var(--mute2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .mbet .mev{display:block;font-family:'Dela Gothic One',sans-serif;font-size:15px;margin-top:2px}
 .mbet .crown{position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#0B0A1A;font-size:9px;font-weight:900;padding:1px 6px;border-radius:999px;white-space:nowrap}
 .chip{border-radius:50%;border:2px solid var(--lime);color:var(--lime);font-weight:900;display:flex;align-items:center;justify-content:center;flex:none}
@@ -103,8 +113,7 @@ main{position:relative;z-index:1;max-width:430px;height:100dvh;margin:0 auto;pad
 /*LOGIC_START*/
 const CFG = {
   UNIT: 100,
-  MIN_P: { tan: 0.05, fuku: 0.20, umaren: 0.03, wide: 0.10 },
-  WIDE_SECOND_MIN_EV: 1.0
+  MIN_P: { tan: 0.05, fuku: 0.20, wide: 0.10 }
 };
 
 function pairKey(a, b) { return a < b ? a + '-' + b : b + '-' + a; }
@@ -185,21 +194,12 @@ function choosePicks(data, model, maps) {
   if (tan) picks.push(Object.assign({ type: 'tan', label: '単勝', unit: '1点' }, tan));
   const fuku = rankCands(H.map((h, i) => makeCand([i], model.top3[i], h.fuku)), CFG.MIN_P.fuku)[0];
   if (fuku) picks.push(Object.assign({ type: 'fuku', label: '複勝', unit: '1点' }, fuku));
-  const um = Object.keys(model.quinella).map(k => {
-    const [a, b] = k.split('-').map(Number);
-    return makeCand([a, b], model.quinella[k], maps.umaren[k]);
-  });
-  const umBest = rankCands(um, CFG.MIN_P.umaren)[0];
-  if (umBest) picks.push(Object.assign({ type: 'umaren', label: '馬連', unit: '1点' }, umBest));
   const wd = Object.keys(model.wide).map(k => {
     const [a, b] = k.split('-').map(Number);
     return makeCand([a, b], model.wide[k], maps.wide[k]);
   });
-  const wdRank = rankCands(wd, CFG.MIN_P.wide);
-  if (wdRank[0]) picks.push(Object.assign({ type: 'wide', label: 'ワイド', unit: '1点目' }, wdRank[0]));
-  if (wdRank[1] && wdRank[1].ev !== null && wdRank[1].ev >= CFG.WIDE_SECOND_MIN_EV) {
-    picks.push(Object.assign({ type: 'wide', label: 'ワイド', unit: '2点目' }, wdRank[1]));
-  }
+  const wdBest = rankCands(wd, CFG.MIN_P.wide)[0];
+  if (wdBest) picks.push(Object.assign({ type: 'wide', label: 'ワイド', unit: '1点' }, wdBest));
   return picks;
 }
 
@@ -382,7 +382,8 @@ function betStrip() {
     return '<div class="mbet' + (k === BEST ? ' best' : '') + '" style="position:relative">' + crown +
       '<span class="mt">' + pk.label + pk.unit + '</span>' +
       '<div class="mchips">' + chips(pk.idx, pk.type === 'wide' ? 'pk' : '') + '</div>' +
-      '<span class="mn">' + pk.idx.map(i => noOf(i)).join('-') + ' 的中' + pct(pk.p, 0) + '</span>' +
+      '<span class="mn">' + pk.idx.map(i => nameOf(i)).join('・') + '</span>' +
+      '<span class="mn">的中' + pct(pk.p, 0) + '</span>' +
       '<span class="mev ' + evCls + '">EV ' + evTxt + '</span>' + hit + '</div>';
   }).join('');
   $('strip').style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
@@ -671,6 +672,47 @@ function loadRace(i) {
   renderApp();
 }
 
+function enterApp() {
+  RACES = (ROOT && Array.isArray(ROOT.races) && ROOT.races.length) ? ROOT.races : [ROOT];
+  const m = /r(\d+)/.exec(location.hash);
+  let i = m ? parseInt(m[1], 10) - 1 : 0;
+  if (!(i >= 0 && i < RACES.length)) i = 0;
+  loadRace(i);
+}
+
+function showLock() {
+  $('app').innerHTML =
+    '<div class="lock">' +
+    '<div class="ico">PASSWORD</div>' +
+    '<h1 class="disp">合言葉を入力</h1>' +
+    '<p class="small mute" style="margin:0">noteの記事に書いてある、その日の合言葉を入れてや</p>' +
+    '<input id="pw" inputmode="text" autocomplete="off" autocapitalize="off" placeholder="・・・・">' +
+    '<p class="err-msg" id="pwerr"></p>' +
+    '<button class="btn" data-act="unlock">開ける</button>' +
+    '</div>';
+  $('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+  $('pw').focus();
+}
+
+function tryUnlock() {
+  const v = $('pw').value.trim();
+  if (v && v === String(ROOT.password).trim()) {
+    try { localStorage.setItem('ik_pw', v); } catch (e) {}
+    enterApp();
+  } else {
+    $('pwerr').textContent = '合言葉が違うみたいや。';
+    const box = document.querySelector('.lock');
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    $('pw').value = '';
+    $('pw').focus();
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act="unlock"]');
+  if (b) tryUnlock();
+});
+
 async function boot() {
   try {
     const res = await fetch('race.json?ts=' + Date.now(), { cache: 'no-store' });
@@ -680,11 +722,12 @@ async function boot() {
     $('app').innerHTML = '<div class="err">race.json を読み込めませんでした。<br>・ファイル名が race.json になっているか<br>・index.html と同じ場所に置いてあるか<br>・GitHub Pages のURLから開いているか（ダブルクリックで開くと読めません）</div>';
     return;
   }
-  RACES = (ROOT && Array.isArray(ROOT.races) && ROOT.races.length) ? ROOT.races : [ROOT];
-  const m = /r(\d+)/.exec(location.hash);
-  let i = m ? parseInt(m[1], 10) - 1 : 0;
-  if (!(i >= 0 && i < RACES.length)) i = 0;
-  loadRace(i);
+  if (ROOT.password) {
+    let saved = null;
+    try { saved = localStorage.getItem('ik_pw'); } catch (e) {}
+    if (saved !== String(ROOT.password).trim()) { showLock(); return; }
+  }
+  enterApp();
 }
 boot();
 </script>
