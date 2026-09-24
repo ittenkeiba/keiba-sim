@@ -278,7 +278,7 @@ const pct = (x, d) => (x * 100).toFixed(d === undefined ? 1 : d) + '%';
 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let ROOT = null, RACES = [], CUR = 0;
-let DATA = null, MODEL = null, MAPS = null, PICKS = [], BEST = 0, SUMMARY = null;
+let DATA = null, MODEL = null, MAPS = null, PICKS = [], BEST = 0, SUMMARY = null, HAS_ODDS = false;
 let SIM = null, busy = false, raf = 0, toastTimer = 0;
 let HG = [], HI = [], HL = [];
 
@@ -375,16 +375,14 @@ function resetTrack() {
 function betStrip() {
   const cols = PICKS.length;
   const items = PICKS.map((pk, k) => {
-    const evTxt = pk.ev === null ? '—' : pk.ev.toFixed(2);
-    const evCls = pk.ev === null ? 'none' : (pk.ev >= 1 ? 'good' : 'weak');
     const crown = k === BEST ? '<span class="crown">推し</span>' : '';
     const hit = SIM && SIM.lastHits ? (SIM.lastHits[k] === true ? '<span class="chip xs" style="position:absolute;bottom:-7px;right:-4px;width:16px;height:16px;font-size:9px;background:var(--lime);border-color:var(--lime);color:#0B0A1A">✓</span>' : (SIM.lastHits[k] === false ? '<span class="chip xs" style="position:absolute;bottom:-7px;right:-4px;width:16px;height:16px;font-size:9px;background:var(--line);border-color:var(--line);color:var(--mute)">×</span>' : '')) : '';
+    const evLine = HAS_ODDS ? ('<span class="mev ' + (pk.ev === null ? 'none' : (pk.ev >= 1 ? 'good' : 'weak')) + '">EV ' + (pk.ev === null ? '—' : pk.ev.toFixed(2)) + '</span>') : '';
     return '<div class="mbet' + (k === BEST ? ' best' : '') + '" style="position:relative">' + crown +
       '<span class="mt">' + pk.label + pk.unit + '</span>' +
       '<div class="mchips">' + chips(pk.idx, pk.type === 'wide' ? 'pk' : '') + '</div>' +
       '<span class="mn">' + pk.idx.map(i => nameOf(i)).join('・') + '</span>' +
-      '<span class="mn">的中' + pct(pk.p, 0) + '</span>' +
-      '<span class="mev ' + evCls + '">EV ' + evTxt + '</span>' + hit + '</div>';
+      '<span class="mn">的中' + pct(pk.p, 0) + '</span>' + evLine + hit + '</div>';
   }).join('');
   $('strip').style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
   $('strip').innerHTML = items;
@@ -399,11 +397,13 @@ function resultHtml() {
     const i = L.order[r];
     return '<span style="color:' + medal[r] + '">' + (r + 1) + '着</span>' + chips([i]) + '<b>' + pct(probs[r][i]) + '</b>';
   }).join('') + '</div>';
+  const netTag = HAS_ODDS ? ('<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span>') : '';
+  const streakLabel = HAS_ODDS ? '連続プラス' : '連続的中';
   const tags = '<div class="tags">' +
     '<span class="rar" style="color:' + L.rar.color + ';border-color:' + L.rar.color + '">' + L.rar.name + '</span>' +
     '<span class="badge' + (L.any ? '' : ' miss') + '">' + (L.any ? '的中あり' : 'ハズレ') + '</span>' +
-    (SIM.streak >= 2 ? '<span>' + SIM.streak + '連続プラス</span>' : '') +
-    '<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span></div>';
+    (SIM.streak >= 2 ? '<span>' + SIM.streak + streakLabel + '</span>' : '') +
+    netTag + '</div>';
   return ord + tags;
 }
 
@@ -418,8 +418,8 @@ function batchResultHtml() {
   const sample = L.order ? '<div class="ord"><span class="small mute">サンプル1回</span>' + [0, 1, 2].map(r => {
     const i = L.order[r]; return '<span style="color:' + medal[r] + '">' + (r + 1) + '</span>' + chips([i]);
   }).join('') + '</div>' : '';
-  const tags = '<div class="tags"><span>直近 ' + L.k.toLocaleString('ja-JP') + '回</span><span>的中 ' + L.hits.toLocaleString('ja-JP') + '回</span>' +
-    '<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span></div>';
+  const netTag = HAS_ODDS ? ('<span class="net ' + (L.net > 0 ? 'good' : 'none') + '" style="margin-left:auto">' + sgn(L.net) + '</span>') : ('<span style="margin-left:auto">的中率 ' + pct(L.hits / L.k, 0) + '</span>');
+  const tags = '<div class="tags"><span>直近 ' + L.k.toLocaleString('ja-JP') + '回</span><span>的中 ' + L.hits.toLocaleString('ja-JP') + '回</span>' + netTag + '</div>';
   return sample + tags;
 }
 
@@ -428,10 +428,14 @@ function updateStats(montage) {
   const net = S.back - S.cost;
   const roi = S.cost ? S.back / S.cost : null;
   const oc = S.runs ? (net >= 0 ? 'good' : 'none') : 'none';
+  $('stats').style.gridTemplateColumns = HAS_ODDS ? 'repeat(4,1fr)' : 'repeat(2,1fr)';
+  const moneyCards = HAS_ODDS ?
+    '<div class="stat"><div class="k">累計収支</div><div class="v ' + oc + '">' + (S.runs ? sgn(net) : '—') + '</div><div class="s">払戻' + yen(S.back) + '</div></div>' +
+    '<div class="stat"><div class="k">回収率</div><div class="v ' + (roi === null ? 'none' : (roi >= 1 ? 'good' : 'weak')) + '">' + (roi === null ? '—' : Math.round(roi * 100) + '%') + '</div><div class="s">期待' + (SUMMARY.roi === null ? '—' : Math.round(SUMMARY.roi * 100) + '%') + '</div></div>'
+    : '';
   $('stats').innerHTML =
     '<div class="stat"><div class="k">試行回数</div><div class="v">' + S.runs.toLocaleString('ja-JP') + '</div><div class="s">回</div></div>' +
-    '<div class="stat"><div class="k">累計収支</div><div class="v ' + oc + '">' + (S.runs ? sgn(net) : '—') + '</div><div class="s">払戻' + yen(S.back) + '</div></div>' +
-    '<div class="stat"><div class="k">回収率</div><div class="v ' + (roi === null ? 'none' : (roi >= 1 ? 'good' : 'weak')) + '">' + (roi === null ? '—' : Math.round(roi * 100) + '%') + '</div><div class="s">期待' + (SUMMARY.roi === null ? '—' : Math.round(SUMMARY.roi * 100) + '%') + '</div></div>' +
+    moneyCards +
     '<div class="stat"><div class="k">的中率</div><div class="v">' + (S.runs ? pct(S.anyHit / S.runs, 0) : '—') + '</div><div class="s">計算' + pct(SUMMARY.anyHit, 0) + '</div></div>';
   if (!montage) {
     document.querySelectorAll('#stats .stat .v').forEach((el, idx) => {
@@ -477,6 +481,8 @@ function renderApp() {
   betStrip();
   updateStats(false);
   $('result').innerHTML = resultHtml();
+  const sel = document.querySelector('.rc[aria-pressed="true"]');
+  if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 /* ---------- run logic ---------- */
@@ -494,17 +500,23 @@ function runOnce(order) {
   const cost = PICKS.length * CFG.UNIT;
   SIM.runs++; SIM.cost += cost; SIM.back += back;
   if (any) SIM.anyHit++;
-  if (back - cost > 0) { SIM.streak++; if (SIM.streak > SIM.best) SIM.best = SIM.streak; } else SIM.streak = 0;
+  const success = HAS_ODDS ? (back - cost > 0) : any;
+  if (success) { SIM.streak++; if (SIM.streak > SIM.best) SIM.best = SIM.streak; } else SIM.streak = 0;
   SIM.lastHits = hits;
   return { net: back - cost, any };
 }
 
 function setDock(disabled) { document.querySelectorAll('.dock button').forEach(b => { b.disabled = disabled; }); }
 
-function toast(net) {
+function toast(net, hitText) {
   const t = $('toast');
-  t.textContent = sgn(net);
-  t.className = 'on' + (net < 0 ? ' neg' : '');
+  if (HAS_ODDS) {
+    t.textContent = sgn(net);
+    t.className = 'on' + (net < 0 ? ' neg' : '');
+  } else {
+    t.textContent = hitText;
+    t.className = 'on' + (hitText === 'ハズレ' ? ' neg' : '');
+  }
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.className = ''; }, 1500);
 }
@@ -611,7 +623,8 @@ function run1() {
     SIM.last = { type: 'one', order: order, net: r.net, any: r.any, p: pTri, rar: rarityOf(MODEL, pTri) };
     busy = false; setDock(false);
     updateAll(false);
-    if (!checkMilestone()) { toast(r.net); if (r.net > 0 || SIM.last.rar.key === 'ultra') confetti(); }
+    const success = HAS_ODDS ? r.net > 0 : r.any;
+    if (!checkMilestone()) { toast(r.net, r.any ? '的中！' : 'ハズレ'); if (success || SIM.last.rar.key === 'ultra') confetti(); }
   });
 }
 
@@ -622,11 +635,13 @@ function runN(k) {
   const dur = k <= 10 ? 1.0 : (k <= 100 ? 1.6 : 2.2);
   montage(k, dur, (lastOrder) => {
     const net = (SIM.back - SIM.cost) - before;
-    SIM.last = { type: 'batch', k: k, net: net, hits: SIM.anyHit - hit0, order: lastOrder };
+    const hits = SIM.anyHit - hit0;
+    SIM.last = { type: 'batch', k: k, net: net, hits: hits, order: lastOrder };
     SIM.lastHits = null;
     busy = false; setDock(false);
     updateAll(false);
-    if (!checkMilestone()) { toast(net); if (net > 0 && k >= 100) confetti(); }
+    const success = HAS_ODDS ? net > 0 : hits > 0;
+    if (!checkMilestone()) { toast(net, hits.toLocaleString('ja-JP') + '/' + k.toLocaleString('ja-JP') + ' 的中'); if (success && k >= 100) confetti(); }
   });
 }
 
@@ -662,6 +677,7 @@ function loadRace(i) {
   MODEL = computeModel(DATA.horses);
   MAPS = buildOddsMaps(DATA);
   PICKS = choosePicks(DATA, MODEL, MAPS);
+  HAS_ODDS = PICKS.some(pk => pk.odds !== null);
   BEST = PICKS.reduce((bi, pk, k) => {
     const v = pk.ev === null ? pk.p : pk.ev;
     const bv = PICKS[bi].ev === null ? PICKS[bi].p : PICKS[bi].ev;
